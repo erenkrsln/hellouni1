@@ -262,6 +262,10 @@ export type Database = {
         Args: { other_user_id: string }
         Returns: string
       }
+      is_conversation_participant: {
+        Args: { conv_id: string; user_id: string }
+        Returns: boolean
+      }
       mark_message_read: { Args: { message_id: string }; Returns: undefined }
     }
     Enums: {
