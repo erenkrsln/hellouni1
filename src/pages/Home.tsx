@@ -7,6 +7,7 @@ import { Navigation } from "@/components/Navigation";
 import { PostForm } from "@/components/PostForm";
 import { Post } from "@/components/Post";
 import { Loader2 } from "lucide-react";
+import { useSyncClerkProfile } from "@/hooks/useSyncClerkProfile";
 
 interface PostWithProfile {
   id: string;
