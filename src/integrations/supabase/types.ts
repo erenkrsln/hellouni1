@@ -254,19 +254,35 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      create_group_conversation: {
-        Args: { group_name: string; participant_ids: string[] }
-        Returns: string
-      }
-      get_or_create_conversation: {
-        Args: { other_user_id: string }
-        Returns: string
-      }
+      create_group_conversation:
+        | {
+            Args: { group_name: string; participant_ids: string[] }
+            Returns: string
+          }
+        | {
+            Args: {
+              current_user_id: string
+              group_name: string
+              participant_ids: string[]
+            }
+            Returns: string
+          }
+      get_or_create_conversation:
+        | { Args: { other_user_id: string }; Returns: string }
+        | {
+            Args: { current_user_id: string; other_user_id: string }
+            Returns: string
+          }
       is_conversation_participant: {
         Args: { conv_id: string; user_id: string }
         Returns: boolean
       }
-      mark_message_read: { Args: { message_id: string }; Returns: undefined }
+      mark_message_read:
+        | {
+            Args: { msg_id: string; reader_user_id: string }
+            Returns: undefined
+          }
+        | { Args: { message_id: string }; Returns: undefined }
     }
     Enums: {
       [_ in never]: never

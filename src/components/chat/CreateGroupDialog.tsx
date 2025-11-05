@@ -101,6 +101,7 @@ export const CreateGroupDialog = ({
     setCreating(true);
     try {
       const { data, error } = await supabase.rpc("create_group_conversation", {
+        current_user_id: currentUserId,
         group_name: groupName.trim(),
         participant_ids: Array.from(selectedUsers),
       });

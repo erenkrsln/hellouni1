@@ -6,10 +6,18 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Image, Loader2 } from "lucide-react";
+import { z } from "zod";
 
 interface PostFormProps {
   onPostCreated: () => void;
 }
+
+const postSchema = z.object({
+  content: z.string()
+    .trim()
+    .min(1, 'Beitrag darf nicht leer sein')
+    .max(5000, 'Beitrag zu lang (max 5.000 Zeichen)')
+});
 
 export const PostForm = ({ onPostCreated }: PostFormProps) => {
   const { user } = useUser();
@@ -20,37 +28,40 @@ export const PostForm = ({ onPostCreated }: PostFormProps) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!content.trim()) {
-      toast({
-        title: "Fehler",
-        description: "Bitte gib einen Text ein",
-        variant: "destructive",
-      });
-      return;
-    }
+    if (!content.trim() || !user) return;
 
     setLoading(true);
     try {
+      // Validate input
+      const validated = postSchema.parse({ content });
+
       const { error } = await supabase.from("posts").insert({
-        user_id: user?.id,
-        content: content.trim(),
+        user_id: user.id,
+        content: validated.content,
       });
 
       if (error) throw error;
 
+      setContent("");
       toast({
         title: "Erfolg",
         description: "Beitrag wurde erstellt",
       });
-      
-      setContent("");
       onPostCreated();
     } catch (error: any) {
-      toast({
-        title: "Fehler",
-        description: error.message,
-        variant: "destructive",
-      });
+      if (error instanceof z.ZodError) {
+        toast({
+          title: "Validierungsfehler",
+          description: error.errors[0].message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Fehler",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
     } finally {
       setLoading(false);
     }
