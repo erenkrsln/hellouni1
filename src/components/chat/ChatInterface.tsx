@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, Loader2, Check, CheckCheck, Users } from "lucide-react";
+import { Send, Loader2, Check, CheckCheck, Users, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
 import { de } from "date-fns/locale";
@@ -27,6 +27,7 @@ interface ChatInterfaceProps {
   conversationName: string | null;
   isGroup: boolean;
   otherUserId?: string;
+  onBack?: () => void;
 }
 
 export const ChatInterface = ({ 
@@ -34,7 +35,8 @@ export const ChatInterface = ({
   currentUserId, 
   conversationName,
   isGroup,
-  otherUserId 
+  otherUserId,
+  onBack
 }: ChatInterfaceProps) => {
   const { toast } = useToast();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -266,6 +268,16 @@ export const ChatInterface = ({
     <Card className="h-full flex flex-col overflow-hidden">
       {/* Chat Header */}
       <div className="p-4 border-b flex items-center gap-3 flex-shrink-0">
+        {onBack && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onBack}
+            className="md:hidden"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+        )}
         <Avatar>
           <AvatarFallback>
             {isGroup ? <Users className="h-5 w-5" /> : conversationName?.[0]?.toUpperCase() || "U"}
