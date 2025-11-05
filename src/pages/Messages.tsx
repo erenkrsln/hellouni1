@@ -3,36 +3,28 @@ import { useUser } from "@clerk/clerk-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { UserList } from "@/components/chat/UserList";
+import { ConversationList } from "@/components/chat/ConversationList";
 import { ChatInterface } from "@/components/chat/ChatInterface";
 import { Loader2 } from "lucide-react";
 
 const Messages = () => {
   const { user } = useUser();
   const { toast } = useToast();
-  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
-  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [selectedConversation, setSelectedConversation] = useState<{
+    id: string;
+    name: string | null;
+    isGroup: boolean;
+    otherUserId?: string;
+  } | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const handleUserSelect = async (userId: string) => {
-    setSelectedUserId(userId);
-    setLoading(true);
-    
-    try {
-      const { data, error } = await supabase
-        .rpc('get_or_create_conversation', { other_user_id: userId });
-
-      if (error) throw error;
-      setConversationId(data);
-    } catch (error: any) {
-      toast({
-        title: "Fehler",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
+  const handleConversationSelect = (conversation: {
+    id: string;
+    name: string | null;
+    isGroup: boolean;
+    otherUserId?: string;
+  }) => {
+    setSelectedConversation(conversation);
   };
 
   if (!user) {
@@ -45,12 +37,12 @@ const Messages = () => {
       
       <main className="container max-w-6xl mx-auto px-4 py-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 h-[calc(100vh-12rem)]">
-          {/* User List */}
+          {/* Conversation List */}
           <div className="md:col-span-1">
-            <UserList 
+            <ConversationList 
               currentUserId={user.id}
-              onUserSelect={handleUserSelect}
-              selectedUserId={selectedUserId}
+              onConversationSelect={handleConversationSelect}
+              selectedConversationId={selectedConversation?.id || null}
             />
           </div>
 
@@ -60,15 +52,17 @@ const Messages = () => {
               <div className="flex items-center justify-center h-full">
                 <Loader2 className="h-8 w-8 animate-spin" />
               </div>
-            ) : conversationId && selectedUserId ? (
+            ) : selectedConversation ? (
               <ChatInterface
-                conversationId={conversationId}
+                conversationId={selectedConversation.id}
                 currentUserId={user.id}
-                otherUserId={selectedUserId}
+                conversationName={selectedConversation.name}
+                isGroup={selectedConversation.isGroup}
+                otherUserId={selectedConversation.otherUserId}
               />
             ) : (
               <div className="flex items-center justify-center h-full text-muted-foreground">
-                Wähle einen Nutzer aus, um zu chatten
+                Wähle eine Konversation aus, um zu chatten
               </div>
             )}
           </div>

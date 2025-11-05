@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, Loader2 } from "lucide-react";
+import { Send, Loader2, Check, CheckCheck, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
 import { de } from "date-fns/locale";
@@ -15,29 +15,41 @@ interface Message {
   content: string;
   sender_id: string;
   created_at: string;
+  sender_profile?: {
+    full_name: string | null;
+  };
+  read_by?: string[];
 }
 
 interface ChatInterfaceProps {
   conversationId: string;
   currentUserId: string;
-  otherUserId: string;
+  conversationName: string | null;
+  isGroup: boolean;
+  otherUserId?: string;
 }
 
-export const ChatInterface = ({ conversationId, currentUserId, otherUserId }: ChatInterfaceProps) => {
+export const ChatInterface = ({ 
+  conversationId, 
+  currentUserId, 
+  conversationName,
+  isGroup,
+  otherUserId 
+}: ChatInterfaceProps) => {
   const { toast } = useToast();
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
-  const [otherUser, setOtherUser] = useState<{ full_name: string | null; email: string | null } | null>(null);
+  const [participants, setParticipants] = useState<{ id: string; full_name: string | null }[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchMessages();
-    fetchOtherUser();
+    fetchParticipants();
     
     // Subscribe to new messages
-    const channel = supabase
+    const messagesChannel = supabase
       .channel(`messages:${conversationId}`)
       .on(
         'postgres_changes',
@@ -47,16 +59,57 @@ export const ChatInterface = ({ conversationId, currentUserId, otherUserId }: Ch
           table: 'messages',
           filter: `conversation_id=eq.${conversationId}`,
         },
+        async (payload) => {
+          const newMsg = payload.new as Message;
+          
+          // Fetch sender profile
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("full_name")
+            .eq("id", newMsg.sender_id)
+            .single();
+            
+          setMessages((current) => [
+            ...current, 
+            { ...newMsg, sender_profile: profile }
+          ]);
+          
+          // Mark as read if not own message
+          if (newMsg.sender_id !== currentUserId) {
+            await supabase.rpc('mark_message_read', { message_id: newMsg.id });
+          }
+        }
+      )
+      .subscribe();
+
+    // Subscribe to read receipts
+    const readsChannel = supabase
+      .channel(`message_reads:${conversationId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'message_reads',
+        },
         (payload) => {
-          setMessages((current) => [...current, payload.new as Message]);
+          const read = payload.new as { message_id: string; user_id: string };
+          setMessages((current) =>
+            current.map((msg) =>
+              msg.id === read.message_id
+                ? { ...msg, read_by: [...(msg.read_by || []), read.user_id] }
+                : msg
+            )
+          );
         }
       )
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(messagesChannel);
+      supabase.removeChannel(readsChannel);
     };
-  }, [conversationId]);
+  }, [conversationId, currentUserId]);
 
   useEffect(() => {
     // Scroll to bottom when messages change
@@ -65,31 +118,77 @@ export const ChatInterface = ({ conversationId, currentUserId, otherUserId }: Ch
     }
   }, [messages]);
 
-  const fetchOtherUser = async () => {
+  const fetchParticipants = async () => {
     try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("full_name, email")
-        .eq("id", otherUserId)
-        .single();
+      const { data: participantData, error } = await supabase
+        .from("conversation_participants")
+        .select("user_id")
+        .eq("conversation_id", conversationId);
 
       if (error) throw error;
-      setOtherUser(data);
+      
+      const userIds = participantData?.map(p => p.user_id) || [];
+      
+      if (userIds.length > 0) {
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("id, full_name")
+          .in("id", userIds);
+          
+        setParticipants(
+          profileData?.map(p => ({
+            id: p.id,
+            full_name: p.full_name,
+          })) || []
+        );
+      }
     } catch (error) {
-      console.error("Error fetching user:", error);
+      console.error("Error fetching participants:", error);
     }
   };
 
   const fetchMessages = async () => {
     try {
-      const { data, error } = await supabase
+      const { data: messagesData, error: messagesError } = await supabase
         .from("messages")
         .select("*")
         .eq("conversation_id", conversationId)
         .order("created_at", { ascending: true });
 
-      if (error) throw error;
-      setMessages(data || []);
+      if (messagesError) throw messagesError;
+
+      // Fetch sender profiles and read receipts
+      const messagesWithDetails = await Promise.all(
+        (messagesData || []).map(async (msg) => {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("full_name")
+            .eq("id", msg.sender_id)
+            .single();
+
+          const { data: reads } = await supabase
+            .from("message_reads")
+            .select("user_id")
+            .eq("message_id", msg.id);
+
+          return {
+            ...msg,
+            sender_profile: profile,
+            read_by: reads?.map(r => r.user_id) || [],
+          };
+        })
+      );
+
+      setMessages(messagesWithDetails);
+
+      // Mark unread messages as read
+      const unreadMessages = messagesWithDetails.filter(
+        msg => msg.sender_id !== currentUserId && !msg.read_by.includes(currentUserId)
+      );
+
+      for (const msg of unreadMessages) {
+        await supabase.rpc('mark_message_read', { message_id: msg.id });
+      }
     } catch (error: any) {
       toast({
         title: "Fehler",
@@ -127,18 +226,41 @@ export const ChatInterface = ({ conversationId, currentUserId, otherUserId }: Ch
     }
   };
 
+  const getReadStatus = (message: Message) => {
+    if (message.sender_id !== currentUserId) return null;
+    
+    const readByOthers = (message.read_by || []).filter(id => id !== currentUserId);
+    
+    if (isGroup) {
+      const totalOthers = participants.length - 1;
+      if (readByOthers.length === totalOthers && totalOthers > 0) {
+        return <CheckCheck className="h-3 w-3 text-blue-500" />;
+      } else if (readByOthers.length > 0) {
+        return <CheckCheck className="h-3 w-3 text-muted-foreground" />;
+      }
+    } else {
+      if (readByOthers.length > 0) {
+        return <CheckCheck className="h-3 w-3 text-blue-500" />;
+      }
+    }
+    
+    return <Check className="h-3 w-3 text-muted-foreground" />;
+  };
+
   return (
     <Card className="h-full flex flex-col">
       {/* Chat Header */}
       <div className="p-4 border-b flex items-center gap-3">
         <Avatar>
           <AvatarFallback>
-            {otherUser?.full_name?.[0]?.toUpperCase() || "U"}
+            {isGroup ? <Users className="h-5 w-5" /> : conversationName?.[0]?.toUpperCase() || "U"}
           </AvatarFallback>
         </Avatar>
         <div>
-          <p className="font-semibold">{otherUser?.full_name || "Unbekannter Nutzer"}</p>
-          <p className="text-sm text-muted-foreground">{otherUser?.email}</p>
+          <p className="font-semibold">{conversationName || "Unbekannte Konversation"}</p>
+          <p className="text-sm text-muted-foreground">
+            {isGroup ? `${participants.length} Teilnehmer` : ""}
+          </p>
         </div>
       </div>
 
@@ -156,11 +278,18 @@ export const ChatInterface = ({ conversationId, currentUserId, otherUserId }: Ch
           <div className="space-y-4">
             {messages.map((message) => {
               const isOwn = message.sender_id === currentUserId;
+              const senderName = message.sender_profile?.full_name || "Unbekannt";
+              
               return (
                 <div
                   key={message.id}
-                  className={`flex ${isOwn ? "justify-end" : "justify-start"}`}
+                  className={`flex flex-col ${isOwn ? "items-end" : "items-start"}`}
                 >
+                  {isGroup && !isOwn && (
+                    <p className="text-xs text-muted-foreground mb-1 px-2">
+                      {senderName}
+                    </p>
+                  )}
                   <div
                     className={`max-w-[70%] rounded-2xl px-4 py-2 ${
                       isOwn
@@ -169,12 +298,15 @@ export const ChatInterface = ({ conversationId, currentUserId, otherUserId }: Ch
                     }`}
                   >
                     <p className="text-sm">{message.content}</p>
-                    <p className={`text-xs mt-1 ${isOwn ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
-                      {formatDistanceToNow(new Date(message.created_at), {
-                        addSuffix: true,
-                        locale: de,
-                      })}
-                    </p>
+                    <div className={`flex items-center gap-1 mt-1 ${isOwn ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
+                      <p className="text-xs">
+                        {formatDistanceToNow(new Date(message.created_at), {
+                          addSuffix: true,
+                          locale: de,
+                        })}
+                      </p>
+                      {getReadStatus(message)}
+                    </div>
                   </div>
                 </div>
               );
