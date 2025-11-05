@@ -249,17 +249,17 @@ export const ChatInterface = ({
     if (isGroup) {
       const totalOthers = participants.length - 1;
       if (readByOthers.length === totalOthers && totalOthers > 0) {
-        return <CheckCheck className="h-3 w-3 text-blue-500" />;
+        return <CheckCheck className="h-4 w-4 text-blue-600 dark:text-blue-400" />;
       } else if (readByOthers.length > 0) {
-        return <CheckCheck className="h-3 w-3 text-muted-foreground" />;
+        return <CheckCheck className="h-4 w-4 text-foreground/60" />;
       }
     } else {
       if (readByOthers.length > 0) {
-        return <CheckCheck className="h-3 w-3 text-blue-500" />;
+        return <CheckCheck className="h-4 w-4 text-blue-600 dark:text-blue-400" />;
       }
     }
     
-    return <Check className="h-3 w-3 text-muted-foreground" />;
+    return <Check className="h-4 w-4 text-foreground/60" />;
   };
 
   return (
