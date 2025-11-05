@@ -76,7 +76,10 @@ export const ChatInterface = ({
           
           // Mark as read if not own message
           if (newMsg.sender_id !== currentUserId) {
-            await supabase.rpc('mark_message_read', { message_id: newMsg.id });
+            await supabase.rpc('mark_message_read', { 
+              msg_id: newMsg.id,
+              user_id: currentUserId 
+            });
           }
         }
       )
@@ -187,7 +190,10 @@ export const ChatInterface = ({
       );
 
       for (const msg of unreadMessages) {
-        await supabase.rpc('mark_message_read', { message_id: msg.id });
+        await supabase.rpc('mark_message_read', { 
+          msg_id: msg.id,
+          user_id: currentUserId 
+        });
       }
     } catch (error: any) {
       toast({

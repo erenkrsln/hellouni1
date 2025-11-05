@@ -75,6 +75,7 @@ export const NewDirectMessageDialog = ({
     setCreating(true);
     try {
       const { data, error } = await supabase.rpc('get_or_create_conversation', {
+        current_user_id: currentUserId,
         other_user_id: userId,
       });
 
