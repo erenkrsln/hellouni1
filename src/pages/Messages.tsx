@@ -33,14 +33,14 @@ const Messages = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="h-screen bg-background flex flex-col overflow-hidden">
       {/* Navigation - Hidden on mobile when chat is open */}
       <div className={selectedConversation ? "hidden md:block" : ""}>
         <Navigation />
       </div>
       
       {/* Mobile View: Stack conversations and chat */}
-      <div className="md:hidden flex-1 min-h-0 flex flex-col overflow-hidden">
+      <div className="md:hidden flex-1 flex flex-col overflow-hidden">
         {!selectedConversation ? (
           <div className="flex-1 flex flex-col overflow-hidden">
             <ConversationList
@@ -50,7 +50,7 @@ const Messages = () => {
             />
           </div>
         ) : (
-          <div className="flex-1 flex flex-col overflow-hidden">
+          <div className="h-full flex flex-col">
             <ChatInterface
               conversationId={selectedConversation.id}
               currentUserId={user.id}
