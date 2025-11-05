@@ -98,7 +98,7 @@ export const ChatInterface = ({
       )
       .subscribe();
 
-    // Subscribe to read receipts for this conversation only
+    // Subscribe to read receipts - filter in code to only process relevant ones
     const readsChannel = supabase
       .channel(`message_reads:${conversationId}`)
       .on(
@@ -112,14 +112,20 @@ export const ChatInterface = ({
           const read = payload.new as { message_id: string; user_id: string };
           console.log('New read receipt:', read);
           
-          // Update read_by for the matching message if it exists in current state
-          setMessages((current) =>
-            current.map((msg) =>
-              msg.id === read.message_id
+          // Only update if this message exists in our current conversation
+          setMessages((current) => {
+            const messageExists = current.some(msg => msg.id === read.message_id);
+            if (!messageExists) {
+              console.log('Ignoring read receipt for message not in this conversation');
+              return current;
+            }
+            
+            return current.map((msg) =>
+              msg.id === read.message_id && !msg.read_by?.includes(read.user_id)
                 ? { ...msg, read_by: [...(msg.read_by || []), read.user_id] }
                 : msg
-            )
-          );
+            );
+          });
         }
       )
       .subscribe();
