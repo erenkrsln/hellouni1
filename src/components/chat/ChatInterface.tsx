@@ -78,7 +78,7 @@ export const ChatInterface = ({
           if (newMsg.sender_id !== currentUserId) {
             const { error: readError } = await supabase.rpc('mark_message_read', { 
               msg_id: newMsg.id,
-              user_id: currentUserId 
+              reader_user_id: currentUserId 
             });
             if (readError) {
               console.error('Error marking message as read:', readError);
@@ -102,17 +102,14 @@ export const ChatInterface = ({
           const read = payload.new as { message_id: string; user_id: string };
           console.log('New read receipt:', read);
           
-          // Check if the message belongs to this conversation
-          const message = messages.find(m => m.id === read.message_id);
-          if (message) {
-            setMessages((current) =>
-              current.map((msg) =>
-                msg.id === read.message_id
-                  ? { ...msg, read_by: [...(msg.read_by || []), read.user_id] }
-                  : msg
-              )
-            );
-          }
+          // Update read_by for the matching message if it exists in current state
+          setMessages((current) =>
+            current.map((msg) =>
+              msg.id === read.message_id
+                ? { ...msg, read_by: [...(msg.read_by || []), read.user_id] }
+                : msg
+            )
+          );
         }
       )
       .subscribe();
@@ -201,7 +198,7 @@ export const ChatInterface = ({
       for (const msg of unreadMessages) {
         const { error: readError } = await supabase.rpc('mark_message_read', { 
           msg_id: msg.id,
-          user_id: currentUserId 
+          reader_user_id: currentUserId 
         });
         if (readError) {
           console.error('Error marking message as read:', readError);
