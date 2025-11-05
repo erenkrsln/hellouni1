@@ -40,7 +40,7 @@ const Messages = () => {
       </div>
       
       {/* Mobile View: Stack conversations and chat */}
-      <div className="md:hidden flex-1 flex flex-col overflow-hidden">
+      <div className="md:hidden flex-1 min-h-0 flex flex-col overflow-hidden">
         {!selectedConversation ? (
           <div className="flex-1 flex flex-col overflow-hidden">
             <ConversationList

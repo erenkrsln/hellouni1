@@ -267,7 +267,7 @@ export const ChatInterface = ({
   return (
     <Card className="h-full flex flex-col overflow-hidden">
       {/* Chat Header */}
-      <div className="p-4 border-b flex items-center gap-3 flex-shrink-0">
+      <div className="sticky top-0 z-10 bg-card/80 backdrop-blur supports-[backdrop-filter]:bg-card/60 p-4 border-b flex items-center gap-3 flex-shrink-0">
         {onBack && (
           <Button
             variant="ghost"
