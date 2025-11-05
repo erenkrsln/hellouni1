@@ -278,7 +278,10 @@ export type Database = {
         Returns: boolean
       }
       mark_message_read:
-        | { Args: { msg_id: string; user_id: string }; Returns: undefined }
+        | {
+            Args: { msg_id: string; reader_user_id: string }
+            Returns: undefined
+          }
         | { Args: { message_id: string }; Returns: undefined }
     }
     Enums: {
