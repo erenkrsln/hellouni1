@@ -36,11 +36,11 @@ const Messages = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="h-screen flex flex-col bg-background">
       <Navigation />
       
-      <main className="container max-w-6xl mx-auto px-4 py-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 h-[calc(100vh-12rem)]">
+      <main className="container max-w-6xl mx-auto px-4 py-6 flex-1 overflow-hidden">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 h-full">
           {/* Conversation List */}
           <div className="md:col-span-1">
             <ConversationList 
