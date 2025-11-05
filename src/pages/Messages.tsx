@@ -1,6 +1,8 @@
 import { Navigation } from "@/components/Navigation";
 import { useUser } from "@clerk/clerk-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import { ConversationList } from "@/components/chat/ConversationList";
 import { ChatInterface } from "@/components/chat/ChatInterface";
 import { Loader2 } from "lucide-react";
@@ -8,13 +10,14 @@ import { useSyncClerkProfile } from "@/hooks/useSyncClerkProfile";
 
 const Messages = () => {
   const { user } = useUser();
+  const { toast } = useToast();
   const [selectedConversation, setSelectedConversation] = useState<{
     id: string;
     name: string | null;
     isGroup: boolean;
     otherUserId?: string;
   } | null>(null);
-  const [loading] = useState(false);
+  const [loading, setLoading] = useState(false);
   
   // Sync Clerk profile to Supabase
   useSyncClerkProfile();
@@ -33,48 +36,22 @@ const Messages = () => {
   }
 
   return (
-    <div className="h-screen bg-background flex flex-col overflow-hidden">
-      {/* Navigation - Hidden on mobile when chat is open */}
-      <div className={selectedConversation ? "hidden md:block" : ""}>
-        <Navigation />
-      </div>
+    <div className="min-h-screen bg-background">
+      <Navigation />
       
-      {/* Mobile View: Stack conversations and chat */}
-      <div className="md:hidden flex-1 flex flex-col overflow-hidden">
-        {!selectedConversation ? (
-          <div className="flex-1 flex flex-col overflow-hidden">
-            <ConversationList
-              currentUserId={user.id}
-              onConversationSelect={handleConversationSelect}
-              selectedConversationId={selectedConversation?.id || null}
-            />
-          </div>
-        ) : (
-          <div className="h-full flex flex-col">
-            <ChatInterface
-              conversationId={selectedConversation.id}
-              currentUserId={user.id}
-              conversationName={selectedConversation.name}
-              isGroup={selectedConversation.isGroup}
-              otherUserId={selectedConversation.otherUserId}
-              onBack={() => setSelectedConversation(null)}
-            />
-          </div>
-        )}
-      </div>
-
-      {/* Desktop View: Side by side */}
-      <main className="hidden md:flex container max-w-6xl mx-auto px-4 py-6 flex-1 flex-col overflow-hidden">
-        <div className="grid grid-cols-3 gap-4 flex-1 min-h-0">
-          <div className="col-span-1 h-[calc(100vh-12rem)]">
-            <ConversationList
+      <main className="container max-w-6xl mx-auto px-4 py-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 h-[calc(100vh-12rem)]">
+          {/* Conversation List */}
+          <div className="md:col-span-1">
+            <ConversationList 
               currentUserId={user.id}
               onConversationSelect={handleConversationSelect}
               selectedConversationId={selectedConversation?.id || null}
             />
           </div>
 
-          <div className="col-span-2 h-[calc(100vh-12rem)] flex flex-col min-h-0">
+          {/* Chat Interface */}
+          <div className="md:col-span-2">
             {loading ? (
               <div className="flex items-center justify-center h-full">
                 <Loader2 className="h-8 w-8 animate-spin" />

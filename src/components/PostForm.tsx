@@ -3,64 +3,54 @@ import { useUser } from "@clerk/clerk-react";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Image, Loader2 } from "lucide-react";
-import { z } from "zod";
-import { useEdgeFunctionAuth } from "@/lib/edgeFunctions";
 
 interface PostFormProps {
   onPostCreated: () => void;
 }
 
-const postSchema = z.object({
-  content: z.string()
-    .trim()
-    .min(1, 'Beitrag darf nicht leer sein')
-    .max(5000, 'Beitrag zu lang (max 5.000 Zeichen)')
-});
-
 export const PostForm = ({ onPostCreated }: PostFormProps) => {
   const { user } = useUser();
   const { toast } = useToast();
-  const { callEdgeFunction } = useEdgeFunctionAuth();
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!content.trim() || !user) return;
+    if (!content.trim()) {
+      toast({
+        title: "Fehler",
+        description: "Bitte gib einen Text ein",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setLoading(true);
     try {
-      // Validate input
-      const validated = postSchema.parse({ content });
-
-      await callEdgeFunction('posts', {
-        method: 'CREATE',
-        content: validated.content,
+      const { error } = await supabase.from("posts").insert({
+        user_id: user?.id,
+        content: content.trim(),
       });
 
-      setContent("");
+      if (error) throw error;
+
       toast({
         title: "Erfolg",
         description: "Beitrag wurde erstellt",
       });
+      
+      setContent("");
       onPostCreated();
     } catch (error: any) {
-      if (error instanceof z.ZodError) {
-        toast({
-          title: "Validierungsfehler",
-          description: error.errors[0].message,
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Fehler",
-          description: error.message,
-          variant: "destructive",
-        });
-      }
+      toast({
+        title: "Fehler",
+        description: error.message,
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }

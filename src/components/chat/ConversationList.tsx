@@ -132,10 +132,7 @@ export const ConversationList = ({
       const otherUser = conv.participants[0];
       if (otherUser) {
         const { data, error } = await supabase
-          .rpc('get_or_create_conversation', { 
-            current_user_id: currentUserId,
-            other_user_id: otherUser.id 
-          });
+          .rpc('get_or_create_conversation', { other_user_id: otherUser.id });
 
         if (error) {
           toast({
@@ -187,17 +184,16 @@ export const ConversationList = ({
 
   return (
     <>
-      <div className="h-full flex flex-col bg-background md:rounded-lg md:border md:shadow-sm overflow-hidden">
-        <div className="p-4 md:p-6 space-y-4 flex-shrink-0">
+      <Card className="h-full flex flex-col">
+        <div className="p-4 border-b space-y-3">
           <div className="flex items-center justify-between">
-            <h1 className="font-bold text-2xl md:text-3xl">Chats</h1>
-            <div className="flex gap-1">
+            <h2 className="font-semibold text-lg">Nachrichten</h2>
+            <div className="flex gap-2">
               <Button
                 size="icon"
                 variant="ghost"
                 onClick={() => setShowNewDM(true)}
                 title="Neue Direktnachricht"
-                className="rounded-full"
               >
                 <UserPlus className="h-5 w-5" />
               </Button>
@@ -206,7 +202,6 @@ export const ConversationList = ({
                 variant="ghost"
                 onClick={() => setShowCreateGroup(true)}
                 title="Neue Gruppe"
-                className="rounded-full"
               >
                 <Users className="h-5 w-5" />
               </Button>
@@ -215,29 +210,29 @@ export const ConversationList = ({
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Suchen..."
+              placeholder="Konversationen suchen..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 rounded-full bg-muted/50 border-0"
+              className="pl-10"
             />
           </div>
         </div>
 
-        <Tabs defaultValue="all" className="flex-1 flex flex-col min-h-0">
-          <TabsList className="mx-4 grid w-auto grid-cols-3 gap-2 bg-transparent">
-            <TabsTrigger value="all" className="rounded-full data-[state=active]:bg-muted">
-              Alle
+        <Tabs defaultValue="all" className="flex-1 flex flex-col">
+          <TabsList className="mx-4 mt-2">
+            <TabsTrigger value="all" className="flex-1">
+              Alle ({filteredConversations.length})
             </TabsTrigger>
-            <TabsTrigger value="direct" className="rounded-full data-[state=active]:bg-muted">
-              Direkt
+            <TabsTrigger value="direct" className="flex-1">
+              Direkt ({directMessages.length})
             </TabsTrigger>
-            <TabsTrigger value="groups" className="rounded-full data-[state=active]:bg-muted">
-              Gruppen
+            <TabsTrigger value="groups" className="flex-1">
+              Gruppen ({groupChats.length})
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="all" className="flex-1 mt-2 overflow-hidden">
-            <div className="h-full overflow-y-auto">
+          <TabsContent value="all" className="flex-1 mt-0">
+            <ScrollArea className="h-full">
               {loading ? (
                 <div className="flex justify-center py-8">
                   <Loader2 className="h-6 w-6 animate-spin" />
@@ -251,7 +246,7 @@ export const ConversationList = ({
                     <Button
                       variant="outline"
                       onClick={() => setShowNewDM(true)}
-                      className="mx-auto rounded-full"
+                      className="mx-auto"
                     >
                       <UserPlus className="h-4 w-4 mr-2" />
                       Neue Direktnachricht
@@ -259,7 +254,7 @@ export const ConversationList = ({
                     <Button
                       variant="outline"
                       onClick={() => setShowCreateGroup(true)}
-                      className="mx-auto rounded-full"
+                      className="mx-auto"
                     >
                       <Users className="h-4 w-4 mr-2" />
                       Neue Gruppe erstellen
@@ -267,27 +262,24 @@ export const ConversationList = ({
                   </div>
                 </div>
               ) : (
-                <div>
+                <div className="p-2">
                   {filteredConversations.map((conv) => {
                     const display = getConversationDisplay(conv);
                     return (
                       <button
                         key={conv.id}
                         onClick={() => handleConversationClick(conv)}
-                        className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors border-b last:border-b-0 ${
-                          selectedConversationId === conv.id ? "bg-muted/50" : ""
+                        className={`w-full flex items-center gap-3 p-3 rounded-lg hover:bg-accent transition-colors ${
+                          selectedConversationId === conv.id ? "bg-accent" : ""
                         }`}
                       >
-                        <Avatar className="h-12 w-12">
-                          <AvatarFallback className="text-base">
+                        <Avatar>
+                          <AvatarFallback>
                             {typeof display.avatar === 'string' ? display.avatar : display.avatar}
                           </AvatarFallback>
                         </Avatar>
-                        <div className="flex-1 text-left overflow-hidden min-w-0">
-                          <div className="flex items-center justify-between gap-2 mb-1">
-                            <p className="font-semibold truncate">{display.name}</p>
-                            <span className="text-xs text-muted-foreground flex-shrink-0">12:30</span>
-                          </div>
+                        <div className="flex-1 text-left overflow-hidden">
+                          <p className="font-medium truncate">{display.name}</p>
                           <p className="text-sm text-muted-foreground truncate">
                             {display.subtitle}
                           </p>
@@ -297,11 +289,11 @@ export const ConversationList = ({
                   })}
                 </div>
               )}
-            </div>
+            </ScrollArea>
           </TabsContent>
 
-          <TabsContent value="direct" className="flex-1 mt-2 overflow-hidden">
-            <div className="h-full overflow-y-auto">
+          <TabsContent value="direct" className="flex-1 mt-0">
+            <ScrollArea className="h-full">
               {loading ? (
                 <div className="flex justify-center py-8">
                   <Loader2 className="h-6 w-6 animate-spin" />
@@ -314,34 +306,31 @@ export const ConversationList = ({
                   <Button
                     variant="outline"
                     onClick={() => setShowNewDM(true)}
-                    className="mx-auto rounded-full"
+                    className="mx-auto"
                   >
                     <UserPlus className="h-4 w-4 mr-2" />
                     Neue Direktnachricht starten
                   </Button>
                 </div>
               ) : (
-                <div>
+                <div className="p-2">
                   {directMessages.map((conv) => {
                     const display = getConversationDisplay(conv);
                     return (
                       <button
                         key={conv.id}
                         onClick={() => handleConversationClick(conv)}
-                        className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors border-b last:border-b-0 ${
-                          selectedConversationId === conv.id ? "bg-muted/50" : ""
+                        className={`w-full flex items-center gap-3 p-3 rounded-lg hover:bg-accent transition-colors ${
+                          selectedConversationId === conv.id ? "bg-accent" : ""
                         }`}
                       >
-                        <Avatar className="h-12 w-12">
-                          <AvatarFallback className="text-base">
+                        <Avatar>
+                          <AvatarFallback>
                             {typeof display.avatar === 'string' ? display.avatar : display.avatar}
                           </AvatarFallback>
                         </Avatar>
-                        <div className="flex-1 text-left overflow-hidden min-w-0">
-                          <div className="flex items-center justify-between gap-2 mb-1">
-                            <p className="font-semibold truncate">{display.name}</p>
-                            <span className="text-xs text-muted-foreground flex-shrink-0">12:30</span>
-                          </div>
+                        <div className="flex-1 text-left overflow-hidden">
+                          <p className="font-medium truncate">{display.name}</p>
                           <p className="text-sm text-muted-foreground truncate">
                             {display.subtitle}
                           </p>
@@ -351,11 +340,11 @@ export const ConversationList = ({
                   })}
                 </div>
               )}
-            </div>
+            </ScrollArea>
           </TabsContent>
 
-          <TabsContent value="groups" className="flex-1 mt-2 overflow-hidden">
-            <div className="h-full overflow-y-auto">
+          <TabsContent value="groups" className="flex-1 mt-0">
+            <ScrollArea className="h-full">
               {loading ? (
                 <div className="flex justify-center py-8">
                   <Loader2 className="h-6 w-6 animate-spin" />
@@ -368,34 +357,31 @@ export const ConversationList = ({
                   <Button
                     variant="outline"
                     onClick={() => setShowCreateGroup(true)}
-                    className="mx-auto rounded-full"
+                    className="mx-auto"
                   >
                     <Users className="h-4 w-4 mr-2" />
                     Neue Gruppe erstellen
                   </Button>
                 </div>
               ) : (
-                <div>
+                <div className="p-2">
                   {groupChats.map((conv) => {
                     const display = getConversationDisplay(conv);
                     return (
                       <button
                         key={conv.id}
                         onClick={() => handleConversationClick(conv)}
-                        className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors border-b last:border-b-0 ${
-                          selectedConversationId === conv.id ? "bg-muted/50" : ""
+                        className={`w-full flex items-center gap-3 p-3 rounded-lg hover:bg-accent transition-colors ${
+                          selectedConversationId === conv.id ? "bg-accent" : ""
                         }`}
                       >
-                        <Avatar className="h-12 w-12">
-                          <AvatarFallback className="text-base">
+                        <Avatar>
+                          <AvatarFallback>
                             {typeof display.avatar === 'string' ? display.avatar : display.avatar}
                           </AvatarFallback>
                         </Avatar>
-                        <div className="flex-1 text-left overflow-hidden min-w-0">
-                          <div className="flex items-center justify-between gap-2 mb-1">
-                            <p className="font-semibold truncate">{display.name}</p>
-                            <span className="text-xs text-muted-foreground flex-shrink-0">12:30</span>
-                          </div>
+                        <div className="flex-1 text-left overflow-hidden">
+                          <p className="font-medium truncate">{display.name}</p>
                           <p className="text-sm text-muted-foreground truncate">
                             {display.subtitle}
                           </p>
@@ -405,10 +391,10 @@ export const ConversationList = ({
                   })}
                 </div>
               )}
-            </div>
+            </ScrollArea>
           </TabsContent>
         </Tabs>
-      </div>
+      </Card>
 
       <NewDirectMessageDialog
         open={showNewDM}

@@ -5,12 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, Loader2, Check, CheckCheck, Users, ArrowLeft } from "lucide-react";
+import { Send, Loader2, Check, CheckCheck, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
 import { de } from "date-fns/locale";
-import { z } from "zod";
-import { useEdgeFunctionAuth } from "@/lib/edgeFunctions";
 
 interface Message {
   id: string;
@@ -29,26 +27,16 @@ interface ChatInterfaceProps {
   conversationName: string | null;
   isGroup: boolean;
   otherUserId?: string;
-  onBack?: () => void;
 }
 
-const messageSchema = z.object({
-  content: z.string()
-    .trim()
-    .min(1, 'Nachricht darf nicht leer sein')
-    .max(10000, 'Nachricht zu lang (max 10.000 Zeichen)')
-});
-
-export const ChatInterface = ({
+export const ChatInterface = ({ 
   conversationId, 
   currentUserId, 
   conversationName,
   isGroup,
-  otherUserId,
-  onBack
+  otherUserId 
 }: ChatInterfaceProps) => {
   const { toast } = useToast();
-  const { callEdgeFunction } = useEdgeFunctionAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
@@ -88,19 +76,13 @@ export const ChatInterface = ({
           
           // Mark as read if not own message
           if (newMsg.sender_id !== currentUserId) {
-            const { error: readError } = await supabase.rpc('mark_message_read', { 
-              msg_id: newMsg.id,
-              reader_user_id: currentUserId 
-            });
-            if (readError) {
-              console.error('Error marking message as read:', readError);
-            }
+            await supabase.rpc('mark_message_read', { message_id: newMsg.id });
           }
         }
       )
       .subscribe();
 
-    // Subscribe to read receipts for this conversation only
+    // Subscribe to read receipts
     const readsChannel = supabase
       .channel(`message_reads:${conversationId}`)
       .on(
@@ -110,11 +92,8 @@ export const ChatInterface = ({
           schema: 'public',
           table: 'message_reads',
         },
-        async (payload) => {
+        (payload) => {
           const read = payload.new as { message_id: string; user_id: string };
-          console.log('New read receipt:', read);
-          
-          // Update read_by for the matching message if it exists in current state
           setMessages((current) =>
             current.map((msg) =>
               msg.id === read.message_id
@@ -208,13 +187,7 @@ export const ChatInterface = ({
       );
 
       for (const msg of unreadMessages) {
-        const { error: readError } = await supabase.rpc('mark_message_read', { 
-          msg_id: msg.id,
-          reader_user_id: currentUserId 
-        });
-        if (readError) {
-          console.error('Error marking message as read:', readError);
-        }
+        await supabase.rpc('mark_message_read', { message_id: msg.id });
       }
     } catch (error: any) {
       toast({
@@ -233,32 +206,21 @@ export const ChatInterface = ({
     if (!newMessage.trim()) return;
 
     setSending(true);
-    const messageContent = newMessage;
-    
     try {
-      // Validate input
-      const validated = messageSchema.parse({ content: messageContent });
-      
-      await callEdgeFunction('messages', {
-        conversationId,
-        content: validated.content,
+      const { error } = await supabase.from("messages").insert({
+        conversation_id: conversationId,
+        sender_id: currentUserId,
+        content: newMessage.trim(),
       });
 
+      if (error) throw error;
       setNewMessage("");
     } catch (error: any) {
-      if (error instanceof z.ZodError) {
-        toast({
-          title: "Validierungsfehler",
-          description: error.errors[0].message,
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Fehler",
-          description: error.message,
-          variant: "destructive",
-        });
-      }
+      toast({
+        title: "Fehler",
+        description: error.message,
+        variant: "destructive",
+      });
     } finally {
       setSending(false);
     }
@@ -272,33 +234,23 @@ export const ChatInterface = ({
     if (isGroup) {
       const totalOthers = participants.length - 1;
       if (readByOthers.length === totalOthers && totalOthers > 0) {
-        return <CheckCheck className="h-4 w-4 text-blue-600 dark:text-blue-400" />;
+        return <CheckCheck className="h-3 w-3 text-blue-500" />;
       } else if (readByOthers.length > 0) {
-        return <CheckCheck className="h-4 w-4 text-foreground/60" />;
+        return <CheckCheck className="h-3 w-3 text-muted-foreground" />;
       }
     } else {
       if (readByOthers.length > 0) {
-        return <CheckCheck className="h-4 w-4 text-blue-600 dark:text-blue-400" />;
+        return <CheckCheck className="h-3 w-3 text-blue-500" />;
       }
     }
     
-    return <Check className="h-4 w-4 text-foreground/60" />;
+    return <Check className="h-3 w-3 text-muted-foreground" />;
   };
 
   return (
-    <Card className="h-full flex flex-col overflow-hidden">
+    <Card className="h-full flex flex-col">
       {/* Chat Header */}
-      <div className="sticky top-0 z-10 bg-card/80 backdrop-blur supports-[backdrop-filter]:bg-card/60 p-4 border-b flex items-center gap-3 flex-shrink-0">
-        {onBack && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onBack}
-            className="md:hidden"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-        )}
+      <div className="p-4 border-b flex items-center gap-3">
         <Avatar>
           <AvatarFallback>
             {isGroup ? <Users className="h-5 w-5" /> : conversationName?.[0]?.toUpperCase() || "U"}
@@ -313,10 +265,10 @@ export const ChatInterface = ({
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4">
+      <ScrollArea className="flex-1 p-4">
         {loading ? (
-          <div className="flex justify-center items-center h-full">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          <div className="flex justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin" />
           </div>
         ) : messages.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
@@ -362,10 +314,10 @@ export const ChatInterface = ({
             <div ref={scrollRef} />
           </div>
         )}
-      </div>
+      </ScrollArea>
 
       {/* Message Input */}
-      <form onSubmit={handleSendMessage} className="p-4 border-t flex-shrink-0">
+      <form onSubmit={handleSendMessage} className="p-4 border-t">
         <div className="flex gap-2">
           <Input
             placeholder="Nachricht schreiben..."
