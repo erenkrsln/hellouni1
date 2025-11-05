@@ -67,23 +67,29 @@ export const ChatInterface = ({
           event: 'INSERT',
           schema: 'public',
           table: 'messages',
-          filter: `conversation_id=eq.${conversationId}`,
         },
         async (payload) => {
-          const newMsg = payload.new as Message;
-          
+          const newMsg: any = payload.new;
+
+          // Only process messages for the active conversation
+          if (newMsg.conversation_id !== conversationId) {
+            console.log('Ignoring message for other conversation', newMsg.conversation_id);
+            return;
+          }
+
           // Fetch sender profile
           const { data: profile } = await supabase
             .from("profiles")
             .select("full_name")
             .eq("id", newMsg.sender_id)
             .single();
-            
-          setMessages((current) => [
-            ...current, 
-            { ...newMsg, sender_profile: profile }
-          ]);
-          
+
+          // Avoid duplicates (e.g., optimistic UI + realtime insert)
+          setMessages((current) => {
+            if (current.some((m) => m.id === newMsg.id)) return current;
+            return [...current, { ...newMsg, sender_profile: profile }];
+          });
+
           // Mark as read if not own message
           if (newMsg.sender_id !== currentUserId) {
             const { error: readError } = await supabase.rpc('mark_message_read', { 
@@ -96,7 +102,9 @@ export const ChatInterface = ({
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Realtime messages channel status:', status);
+      });
 
     // Subscribe to read receipts - filter in code to only process relevant ones
     const readsChannel = supabase
