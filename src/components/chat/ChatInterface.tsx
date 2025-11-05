@@ -76,16 +76,19 @@ export const ChatInterface = ({
           
           // Mark as read if not own message
           if (newMsg.sender_id !== currentUserId) {
-            await supabase.rpc('mark_message_read', { 
+            const { error: readError } = await supabase.rpc('mark_message_read', { 
               msg_id: newMsg.id,
               user_id: currentUserId 
             });
+            if (readError) {
+              console.error('Error marking message as read:', readError);
+            }
           }
         }
       )
       .subscribe();
 
-    // Subscribe to read receipts
+    // Subscribe to read receipts for this conversation only
     const readsChannel = supabase
       .channel(`message_reads:${conversationId}`)
       .on(
@@ -95,15 +98,21 @@ export const ChatInterface = ({
           schema: 'public',
           table: 'message_reads',
         },
-        (payload) => {
+        async (payload) => {
           const read = payload.new as { message_id: string; user_id: string };
-          setMessages((current) =>
-            current.map((msg) =>
-              msg.id === read.message_id
-                ? { ...msg, read_by: [...(msg.read_by || []), read.user_id] }
-                : msg
-            )
-          );
+          console.log('New read receipt:', read);
+          
+          // Check if the message belongs to this conversation
+          const message = messages.find(m => m.id === read.message_id);
+          if (message) {
+            setMessages((current) =>
+              current.map((msg) =>
+                msg.id === read.message_id
+                  ? { ...msg, read_by: [...(msg.read_by || []), read.user_id] }
+                  : msg
+              )
+            );
+          }
         }
       )
       .subscribe();
@@ -190,10 +199,13 @@ export const ChatInterface = ({
       );
 
       for (const msg of unreadMessages) {
-        await supabase.rpc('mark_message_read', { 
+        const { error: readError } = await supabase.rpc('mark_message_read', { 
           msg_id: msg.id,
           user_id: currentUserId 
         });
+        if (readError) {
+          console.error('Error marking message as read:', readError);
+        }
       }
     } catch (error: any) {
       toast({
