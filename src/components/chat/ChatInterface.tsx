@@ -280,8 +280,8 @@ export const ChatInterface = ({
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-hidden">
-        <ScrollArea className="h-full p-4">
+      <ScrollArea className="flex-1">
+        <div className="p-4">
           {loading ? (
             <div className="flex justify-center py-8">
               <Loader2 className="h-6 w-6 animate-spin" />
@@ -330,8 +330,8 @@ export const ChatInterface = ({
             <div ref={scrollRef} />
           </div>
         )}
-        </ScrollArea>
-      </div>
+        </div>
+      </ScrollArea>
 
       {/* Message Input */}
       <form onSubmit={handleSendMessage} className="p-4 border-t">
