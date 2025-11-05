@@ -37,6 +37,9 @@ const Home = () => {
   const { toast } = useToast();
   const [posts, setPosts] = useState<PostWithProfile[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Sync Clerk profile to Supabase
+  useSyncClerkProfile();
 
   useEffect(() => {
     if (isLoaded && !user) {

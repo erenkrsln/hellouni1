@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ConversationList } from "@/components/chat/ConversationList";
 import { ChatInterface } from "@/components/chat/ChatInterface";
 import { Loader2 } from "lucide-react";
+import { useSyncClerkProfile } from "@/hooks/useSyncClerkProfile";
 
 const Messages = () => {
   const { user } = useUser();
@@ -17,6 +18,9 @@ const Messages = () => {
     otherUserId?: string;
   } | null>(null);
   const [loading, setLoading] = useState(false);
+  
+  // Sync Clerk profile to Supabase
+  useSyncClerkProfile();
 
   const handleConversationSelect = (conversation: {
     id: string;
