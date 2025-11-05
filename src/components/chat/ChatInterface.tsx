@@ -315,8 +315,32 @@ export const ChatInterface = ({
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4">
         {loading ? (
-          <div className="flex justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin" />
+          <div className="space-y-4 animate-pulse">
+            {/* Skeleton für eingehende Nachricht */}
+            <div className="flex items-start gap-2">
+              <div className="h-8 w-8 rounded-full bg-muted flex-shrink-0" />
+              <div className="bg-muted rounded-2xl px-4 py-2 max-w-[70%]">
+                <div className="h-4 bg-muted-foreground/20 rounded w-32 mb-1" />
+                <div className="h-3 bg-muted-foreground/20 rounded w-20" />
+              </div>
+            </div>
+            
+            {/* Skeleton für ausgehende Nachricht */}
+            <div className="flex items-start gap-2 justify-end">
+              <div className="bg-primary/20 rounded-2xl px-4 py-2 max-w-[70%]">
+                <div className="h-4 bg-primary/30 rounded w-40 mb-1" />
+                <div className="h-3 bg-primary/30 rounded w-16" />
+              </div>
+            </div>
+            
+            {/* Skeleton für eingehende Nachricht */}
+            <div className="flex items-start gap-2">
+              <div className="h-8 w-8 rounded-full bg-muted flex-shrink-0" />
+              <div className="bg-muted rounded-2xl px-4 py-2 max-w-[70%]">
+                <div className="h-4 bg-muted-foreground/20 rounded w-48 mb-1" />
+                <div className="h-3 bg-muted-foreground/20 rounded w-20" />
+              </div>
+            </div>
           </div>
         ) : messages.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
