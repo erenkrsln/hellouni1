@@ -263,9 +263,9 @@ export const ChatInterface = ({
   };
 
   return (
-    <Card className="h-full flex flex-col">
+    <Card className="h-full flex flex-col overflow-hidden">
       {/* Chat Header */}
-      <div className="p-4 border-b flex items-center gap-3">
+      <div className="p-4 border-b flex items-center gap-3 flex-shrink-0">
         <Avatar>
           <AvatarFallback>
             {isGroup ? <Users className="h-5 w-5" /> : conversationName?.[0]?.toUpperCase() || "U"}
@@ -280,19 +280,18 @@ export const ChatInterface = ({
       </div>
 
       {/* Messages */}
-      <ScrollArea className="flex-1">
-        <div className="p-4">
-          {loading ? (
-            <div className="flex justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin" />
-            </div>
-          ) : messages.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              Noch keine Nachrichten. Schreib die erste Nachricht!
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {messages.map((message) => {
+      <div className="flex-1 overflow-y-auto p-4">
+        {loading ? (
+          <div className="flex justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin" />
+          </div>
+        ) : messages.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            Noch keine Nachrichten. Schreib die erste Nachricht!
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {messages.map((message) => {
               const isOwn = message.sender_id === currentUserId;
               const senderName = message.sender_profile?.full_name || "Unbekannt";
               
@@ -330,11 +329,10 @@ export const ChatInterface = ({
             <div ref={scrollRef} />
           </div>
         )}
-        </div>
-      </ScrollArea>
+      </div>
 
       {/* Message Input */}
-      <form onSubmit={handleSendMessage} className="p-4 border-t">
+      <form onSubmit={handleSendMessage} className="p-4 border-t flex-shrink-0">
         <div className="flex gap-2">
           <Input
             placeholder="Nachricht schreiben..."
