@@ -1,15 +1,23 @@
 import { Home, MessageCircle, Bell, Search, Calendar, MoreVertical, User, Settings, LogOut } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { Input } from "@/components/ui/input";
-import { UserButton } from "@clerk/clerk-react";
+import { UserButton, useClerk } from "@clerk/clerk-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 export const Navigation = () => {
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [searchQuery, setSearchQuery] = useState("");
+  const { signOut } = useClerk();
+  const navigate = useNavigate();
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/");
+  };
   return <nav className="sticky top-0 z-50 bg-card border-b shadow-sm">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16 gap-4">
@@ -99,7 +107,7 @@ export const Navigation = () => {
                   <span>Einstellungen</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={handleSignOut}>
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Abmelden</span>
                 </DropdownMenuItem>
