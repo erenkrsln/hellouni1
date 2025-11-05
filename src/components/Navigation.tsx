@@ -6,14 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 export const Navigation = () => {
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [searchQuery, setSearchQuery] = useState("");
@@ -53,9 +46,7 @@ export const Navigation = () => {
             {/* Calendar Popover */}
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <Calendar className="h-5 w-5" />
-                </Button>
+                
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="end">
                 <CalendarComponent mode="single" selected={date} onSelect={setDate} className="rounded-md" />
