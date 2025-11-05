@@ -69,7 +69,26 @@ export const Navigation = () => {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuLabel>Mein Konto</DropdownMenuLabel>
+                  <DropdownMenuLabel>Menü</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <NavLink to="/home" className="flex items-center cursor-pointer">
+                      <Home className="mr-2 h-4 w-4" />
+                      <span>Startseite</span>
+                    </NavLink>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <NavLink to="/messages" className="flex items-center cursor-pointer">
+                      <MessageCircle className="mr-2 h-4 w-4" />
+                      <span>Nachrichten</span>
+                    </NavLink>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <NavLink to="/notifications" className="flex items-center cursor-pointer">
+                      <Bell className="mr-2 h-4 w-4" />
+                      <span>Benachrichtigungen</span>
+                    </NavLink>
+                  </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem>
                     <User className="mr-2 h-4 w-4" />
