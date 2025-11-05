@@ -2,15 +2,17 @@ import { Button } from "@/components/ui/button";
 import { SignInButton, SignUpButton, useUser } from "@clerk/clerk-react";
 import { ArrowRight, Users, BookOpen, Calendar } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useEffect } from "react";
 
 export const Hero = () => {
-  const { isSignedIn } = useUser();
+  const { isSignedIn, isLoaded } = useUser();
   const navigate = useNavigate();
 
-  if (isSignedIn) {
-    navigate("/dashboard");
-    return null;
-  }
+  useEffect(() => {
+    if (isLoaded && isSignedIn) {
+      navigate("/home");
+    }
+  }, [isSignedIn, isLoaded, navigate]);
 
   return (
     <div className="min-h-screen gradient-hero">

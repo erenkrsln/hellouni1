@@ -1,0 +1,110 @@
+import { Home, MessageCircle, Bell, Search, Calendar } from "lucide-react";
+import { NavLink } from "@/components/NavLink";
+import { Input } from "@/components/ui/input";
+import { UserButton } from "@clerk/clerk-react";
+import { Button } from "@/components/ui/button";
+import { useState } from "react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+
+export const Navigation = () => {
+  const [date, setDate] = useState<Date | undefined>(new Date());
+  const [searchQuery, setSearchQuery] = useState("");
+
+  return (
+    <nav className="sticky top-0 z-50 bg-card border-b shadow-sm">
+      <div className="container mx-auto px-4">
+        <div className="flex items-center justify-between h-16 gap-4">
+          {/* Logo */}
+          <div className="flex-shrink-0 font-bold text-xl text-primary">
+            HelloUni
+          </div>
+
+          {/* Search Bar - Hidden on mobile */}
+          <div className="hidden md:flex flex-1 max-w-md">
+            <div className="relative w-full">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Suchen..."
+                className="pl-10 w-full"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {/* Navigation Items */}
+          <div className="flex items-center gap-2 sm:gap-4">
+            <NavLink
+              to="/home"
+              className="flex flex-col items-center gap-1 p-2 rounded-lg transition-colors hover:bg-accent"
+              activeClassName="text-primary bg-accent"
+            >
+              <Home className="h-5 w-5 sm:h-6 sm:w-6" />
+              <span className="text-xs hidden sm:inline">Startseite</span>
+            </NavLink>
+
+            <NavLink
+              to="/messages"
+              className="flex flex-col items-center gap-1 p-2 rounded-lg transition-colors hover:bg-accent"
+              activeClassName="text-primary bg-accent"
+            >
+              <MessageCircle className="h-5 w-5 sm:h-6 sm:w-6" />
+              <span className="text-xs hidden sm:inline">Nachrichten</span>
+            </NavLink>
+
+            <NavLink
+              to="/notifications"
+              className="flex flex-col items-center gap-1 p-2 rounded-lg transition-colors hover:bg-accent"
+              activeClassName="text-primary bg-accent"
+            >
+              <Bell className="h-5 w-5 sm:h-6 sm:w-6" />
+              <span className="text-xs hidden sm:inline">Benachrichtigungen</span>
+            </NavLink>
+
+            {/* Calendar Popover */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="icon" className="flex-shrink-0">
+                  <Calendar className="h-5 w-5 sm:h-6 sm:w-6" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="end">
+                <CalendarComponent
+                  mode="single"
+                  selected={date}
+                  onSelect={setDate}
+                  className="rounded-md"
+                />
+              </PopoverContent>
+            </Popover>
+
+            {/* User Profile */}
+            <div className="flex-shrink-0">
+              <UserButton afterSignOutUrl="/" />
+            </div>
+          </div>
+        </div>
+
+        {/* Mobile Search Bar */}
+        <div className="md:hidden pb-3">
+          <div className="relative w-full">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder="Suchen..."
+              className="pl-10 w-full"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+        </div>
+      </div>
+    </nav>
+  );
+};
