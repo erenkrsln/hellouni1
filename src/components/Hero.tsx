@@ -3,6 +3,7 @@ import { SignInButton, SignUpButton, useUser } from "@clerk/clerk-react";
 import { ArrowRight, Users, BookOpen, Calendar } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
+import HelloUniLogo from "@/assets/HelloUni_Logo.svg";
 
 export const Hero = () => {
   const { isSignedIn, isLoaded } = useUser();
@@ -20,12 +21,7 @@ export const Hero = () => {
       <header className="container mx-auto px-4 py-6">
         <nav className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center">
-              <span className="text-xl font-bold text-primary-foreground">HU</span>
-            </div>
-            <span className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              HelloUni
-            </span>
+            <img src={HelloUniLogo} alt="HelloUni" className="h-10 w-auto" />
           </div>
           <div className="flex items-center gap-2">
             <SignInButton mode="modal">
