@@ -237,15 +237,43 @@ export const ChatInterface = ({
       // Validate input
       const validated = messageSchema.parse({ content: messageContent });
       
-      const { error } = await supabase.from("messages").insert({
+      // Optimistic update: Add message immediately to UI
+      const tempMessage: Message = {
+        id: `temp-${Date.now()}`,
+        sender_id: currentUserId,
+        content: validated.content,
+        created_at: new Date().toISOString(),
+        sender_profile: {
+          full_name: null,
+        },
+        read_by: [currentUserId],
+      };
+      
+      setMessages((current) => [...current, tempMessage]);
+      setNewMessage("");
+      
+      const { data, error } = await supabase.from("messages").insert({
         conversation_id: conversationId,
         sender_id: currentUserId,
         content: validated.content,
-      });
+      }).select().single();
 
       if (error) throw error;
-      setNewMessage("");
+      
+      // Replace temp message with real one
+      if (data) {
+        setMessages((current) => 
+          current.map((msg) => 
+            msg.id === tempMessage.id 
+              ? { ...data, sender_profile: tempMessage.sender_profile, read_by: tempMessage.read_by }
+              : msg
+          )
+        );
+      }
     } catch (error: any) {
+      // Remove optimistic message on error
+      setMessages((current) => current.filter((msg) => !msg.id.startsWith('temp-')));
+      
       if (error instanceof z.ZodError) {
         toast({
           title: "Validierungsfehler",
