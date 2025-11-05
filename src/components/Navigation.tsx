@@ -35,30 +35,6 @@ export const Navigation = () => {
 
           {/* Navigation Items */}
           <div className="flex items-center gap-2 sm:gap-4">
-            <NavLink to="/home" className="flex flex-col items-center gap-1 p-2 rounded-lg transition-colors hover:bg-accent" activeClassName="text-primary bg-accent">
-              <Home className="h-5 w-5 sm:h-6 sm:w-6" />
-              <span className="text-xs hidden sm:inline">Startseite</span>
-            </NavLink>
-
-            <NavLink to="/messages" className="flex flex-col items-center gap-1 p-2 rounded-lg transition-colors hover:bg-accent" activeClassName="text-primary bg-accent">
-              <MessageCircle className="h-5 w-5 sm:h-6 sm:w-6" />
-              <span className="text-xs hidden sm:inline">Nachrichten</span>
-            </NavLink>
-
-            <NavLink to="/notifications" className="flex flex-col items-center gap-1 p-2 rounded-lg transition-colors hover:bg-accent" activeClassName="text-primary bg-accent">
-              <Bell className="h-5 w-5 sm:h-6 sm:w-6" />
-              <span className="text-xs hidden sm:inline">Benachrichtigungen</span>
-            </NavLink>
-
-            {/* Calendar Popover */}
-            <Popover>
-              <PopoverTrigger asChild>
-                
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="end">
-                <CalendarComponent mode="single" selected={date} onSelect={setDate} className="rounded-md" />
-              </PopoverContent>
-            </Popover>
 
             {/* Mobile Dropdown Menu */}
             <div className="md:hidden flex-shrink-0">
