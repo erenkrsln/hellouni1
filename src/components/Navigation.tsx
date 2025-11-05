@@ -38,17 +38,17 @@ export const Navigation = () => {
 
           {/* Navigation Items - Desktop only */}
           <div className="hidden md:flex items-center gap-2 sm:gap-4">
-            <NavLink to="/home" className="flex flex-col items-center gap-1 p-2 rounded-lg transition-colors hover:bg-accent" activeClassName="text-primary bg-accent">
+            <NavLink to="/home" className="flex flex-col items-center gap-1 p-2 rounded-lg transition-colors hover:bg-accent" activeClassName="bg-accent">
               <Home className="h-5 w-5 sm:h-6 sm:w-6" />
               <span className="text-xs hidden sm:inline">Startseite</span>
             </NavLink>
 
-            <NavLink to="/messages" className="flex flex-col items-center gap-1 p-2 rounded-lg transition-colors hover:bg-accent" activeClassName="text-primary bg-accent">
+            <NavLink to="/messages" className="flex flex-col items-center gap-1 p-2 rounded-lg transition-colors hover:bg-accent" activeClassName="bg-accent">
               <MessageCircle className="h-5 w-5 sm:h-6 sm:w-6" />
               <span className="text-xs hidden sm:inline">Nachrichten</span>
             </NavLink>
 
-            <NavLink to="/notifications" className="flex flex-col items-center gap-1 p-2 rounded-lg transition-colors hover:bg-accent" activeClassName="text-primary bg-accent">
+            <NavLink to="/notifications" className="flex flex-col items-center gap-1 p-2 rounded-lg transition-colors hover:bg-accent" activeClassName="bg-accent">
               <Bell className="h-5 w-5 sm:h-6 sm:w-6" />
               <span className="text-xs hidden sm:inline">Benachrichtigungen</span>
             </NavLink>
