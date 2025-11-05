@@ -12,9 +12,10 @@ import HelloUniLogo from "@/assets/HelloUni_Logo.svg";
 export const Navigation = () => {
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [searchQuery, setSearchQuery] = useState("");
-  const { signOut } = useClerk();
+  const {
+    signOut
+  } = useClerk();
   const navigate = useNavigate();
-
   const handleSignOut = async () => {
     await signOut();
     navigate("/");
@@ -24,7 +25,7 @@ export const Navigation = () => {
         <div className="flex items-center justify-between h-16 gap-4">
           {/* Logo */}
           <NavLink to="/home" className="flex-shrink-0 hover:opacity-80 transition-opacity">
-            <img src={HelloUniLogo} alt="HelloUni" className="h-12 w-auto" />
+            <img src={HelloUniLogo} alt="HelloUni" className="h-20 w-auto" />
           </NavLink>
 
           {/* Search Bar - Hidden on mobile */}
