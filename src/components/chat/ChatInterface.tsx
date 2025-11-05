@@ -280,18 +280,19 @@ export const ChatInterface = ({
       </div>
 
       {/* Messages */}
-      <ScrollArea className="flex-1 p-4">
-        {loading ? (
-          <div className="flex justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin" />
-          </div>
-        ) : messages.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            Noch keine Nachrichten. Schreib die erste Nachricht!
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {messages.map((message) => {
+      <div className="flex-1 overflow-hidden">
+        <ScrollArea className="h-full p-4">
+          {loading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin" />
+            </div>
+          ) : messages.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              Noch keine Nachrichten. Schreib die erste Nachricht!
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {messages.map((message) => {
               const isOwn = message.sender_id === currentUserId;
               const senderName = message.sender_profile?.full_name || "Unbekannt";
               
@@ -329,7 +330,8 @@ export const ChatInterface = ({
             <div ref={scrollRef} />
           </div>
         )}
-      </ScrollArea>
+        </ScrollArea>
+      </div>
 
       {/* Message Input */}
       <form onSubmit={handleSendMessage} className="p-4 border-t">
