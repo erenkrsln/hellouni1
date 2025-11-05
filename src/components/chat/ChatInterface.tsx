@@ -176,27 +176,44 @@ export const ChatInterface = ({
 
       if (messagesError) throw messagesError;
 
-      // Fetch sender profiles and read receipts
-      const messagesWithDetails = await Promise.all(
-        (messagesData || []).map(async (msg) => {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("full_name")
-            .eq("id", msg.sender_id)
-            .single();
+      if (!messagesData || messagesData.length === 0) {
+        setMessages([]);
+        setLoading(false);
+        return;
+      }
 
-          const { data: reads } = await supabase
-            .from("message_reads")
-            .select("user_id")
-            .eq("message_id", msg.id);
+      // Batch fetch all sender profiles
+      const senderIds = [...new Set(messagesData.map(msg => msg.sender_id))];
+      const { data: profilesData } = await supabase
+        .from("profiles")
+        .select("id, full_name")
+        .in("id", senderIds);
 
-          return {
-            ...msg,
-            sender_profile: profile,
-            read_by: reads?.map(r => r.user_id) || [],
-          };
-        })
+      const profilesMap = new Map(
+        (profilesData || []).map(p => [p.id, p])
       );
+
+      // Batch fetch all read receipts
+      const messageIds = messagesData.map(msg => msg.id);
+      const { data: readsData } = await supabase
+        .from("message_reads")
+        .select("message_id, user_id")
+        .in("message_id", messageIds);
+
+      const readsMap = new Map<string, string[]>();
+      (readsData || []).forEach(read => {
+        if (!readsMap.has(read.message_id)) {
+          readsMap.set(read.message_id, []);
+        }
+        readsMap.get(read.message_id)!.push(read.user_id);
+      });
+
+      // Combine data
+      const messagesWithDetails = messagesData.map(msg => ({
+        ...msg,
+        sender_profile: profilesMap.get(msg.sender_id) || null,
+        read_by: readsMap.get(msg.id) || [],
+      }));
 
       setMessages(messagesWithDetails);
 
