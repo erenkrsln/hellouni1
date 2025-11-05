@@ -8,6 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import HelloUniLogo from "@/assets/HelloUni_Logo.svg";
 export const Navigation = () => {
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [searchQuery, setSearchQuery] = useState("");
@@ -22,8 +23,8 @@ export const Navigation = () => {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16 gap-4">
           {/* Logo */}
-          <NavLink to="/home" className="flex-shrink-0 font-bold text-xl text-primary hover:opacity-80 transition-opacity">
-            HelloUni
+          <NavLink to="/home" className="flex-shrink-0 hover:opacity-80 transition-opacity">
+            <img src={HelloUniLogo} alt="HelloUni" className="h-10 w-auto" />
           </NavLink>
 
           {/* Search Bar - Hidden on mobile */}
