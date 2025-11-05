@@ -19,6 +19,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { z } from "zod";
 
 interface PostProps {
   post: {
@@ -46,6 +47,13 @@ interface PostProps {
   onPostDeleted: () => void;
   onPostUpdated: () => void;
 }
+
+const commentSchema = z.object({
+  content: z.string()
+    .trim()
+    .min(1, 'Kommentar darf nicht leer sein')
+    .max(2000, 'Kommentar zu lang (max 2.000 Zeichen)')
+});
 
 export const Post = ({ post, currentUserId, onPostDeleted, onPostUpdated }: PostProps) => {
   const { toast } = useToast();
@@ -88,10 +96,13 @@ export const Post = ({ post, currentUserId, onPostDeleted, onPostUpdated }: Post
     
     setLoading(true);
     try {
+      // Validate input
+      const validated = commentSchema.parse({ content: commentText });
+      
       const { error } = await supabase.from("post_comments").insert({
         post_id: post.id,
         user_id: currentUserId,
-        content: commentText.trim(),
+        content: validated.content,
       });
 
       if (error) throw error;
@@ -103,11 +114,19 @@ export const Post = ({ post, currentUserId, onPostDeleted, onPostUpdated }: Post
         description: "Kommentar wurde hinzugefügt",
       });
     } catch (error: any) {
-      toast({
-        title: "Fehler",
-        description: error.message,
-        variant: "destructive",
-      });
+      if (error instanceof z.ZodError) {
+        toast({
+          title: "Validierungsfehler",
+          description: error.errors[0].message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Fehler",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
     } finally {
       setLoading(false);
     }

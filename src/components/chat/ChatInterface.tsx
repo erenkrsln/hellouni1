@@ -9,6 +9,7 @@ import { Send, Loader2, Check, CheckCheck, Users, ArrowLeft } from "lucide-react
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
 import { de } from "date-fns/locale";
+import { z } from "zod";
 
 interface Message {
   id: string;
@@ -30,7 +31,14 @@ interface ChatInterfaceProps {
   onBack?: () => void;
 }
 
-export const ChatInterface = ({ 
+const messageSchema = z.object({
+  content: z.string()
+    .trim()
+    .min(1, 'Nachricht darf nicht leer sein')
+    .max(10000, 'Nachricht zu lang (max 10.000 Zeichen)')
+});
+
+export const ChatInterface = ({
   conversationId, 
   currentUserId, 
   conversationName,
@@ -223,21 +231,34 @@ export const ChatInterface = ({
     if (!newMessage.trim()) return;
 
     setSending(true);
+    const messageContent = newMessage;
+    
     try {
+      // Validate input
+      const validated = messageSchema.parse({ content: messageContent });
+      
       const { error } = await supabase.from("messages").insert({
         conversation_id: conversationId,
         sender_id: currentUserId,
-        content: newMessage.trim(),
+        content: validated.content,
       });
 
       if (error) throw error;
       setNewMessage("");
     } catch (error: any) {
-      toast({
-        title: "Fehler",
-        description: error.message,
-        variant: "destructive",
-      });
+      if (error instanceof z.ZodError) {
+        toast({
+          title: "Validierungsfehler",
+          description: error.errors[0].message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Fehler",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
     } finally {
       setSending(false);
     }
