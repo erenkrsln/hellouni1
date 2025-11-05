@@ -1,1 +1,16 @@
 project_id = "clocqduyspkcqtrihbqm"
+
+[functions.posts]
+verify_jwt = false
+
+[functions.comments]
+verify_jwt = false
+
+[functions.likes]
+verify_jwt = false
+
+[functions.messages]
+verify_jwt = false
+
+[functions.conversations]
+verify_jwt = false

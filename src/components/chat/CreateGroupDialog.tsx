@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
+import { useEdgeFunctionAuth } from "@/lib/edgeFunctions";
 
 interface User {
   id: string;
@@ -35,6 +36,7 @@ export const CreateGroupDialog = ({
   onGroupCreated,
 }: CreateGroupDialogProps) => {
   const { toast } = useToast();
+  const { callEdgeFunction } = useEdgeFunctionAuth();
   const [groupName, setGroupName] = useState("");
   const [users, setUsers] = useState<User[]>([]);
   const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
@@ -100,13 +102,11 @@ export const CreateGroupDialog = ({
 
     setCreating(true);
     try {
-      const { data, error } = await supabase.rpc("create_group_conversation", {
-        current_user_id: currentUserId,
-        group_name: groupName.trim(),
-        participant_ids: Array.from(selectedUsers),
+      await callEdgeFunction('conversations', {
+        action: 'CREATE_GROUP',
+        groupName: groupName.trim(),
+        participantIds: Array.from(selectedUsers),
       });
-
-      if (error) throw error;
 
       toast({
         title: "Erfolg",

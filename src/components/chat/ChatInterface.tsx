@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
 import { de } from "date-fns/locale";
 import { z } from "zod";
+import { useEdgeFunctionAuth } from "@/lib/edgeFunctions";
 
 interface Message {
   id: string;
@@ -47,6 +48,7 @@ export const ChatInterface = ({
   onBack
 }: ChatInterfaceProps) => {
   const { toast } = useToast();
+  const { callEdgeFunction } = useEdgeFunctionAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
@@ -237,13 +239,11 @@ export const ChatInterface = ({
       // Validate input
       const validated = messageSchema.parse({ content: messageContent });
       
-      const { error } = await supabase.from("messages").insert({
-        conversation_id: conversationId,
-        sender_id: currentUserId,
+      await callEdgeFunction('messages', {
+        conversationId,
         content: validated.content,
       });
 
-      if (error) throw error;
       setNewMessage("");
     } catch (error: any) {
       if (error instanceof z.ZodError) {

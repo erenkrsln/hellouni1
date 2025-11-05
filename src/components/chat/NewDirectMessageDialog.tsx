@@ -12,6 +12,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Search } from "lucide-react";
+import { useEdgeFunctionAuth } from "@/lib/edgeFunctions";
 
 interface User {
   id: string;
@@ -38,6 +39,7 @@ export const NewDirectMessageDialog = ({
   onConversationCreated,
 }: NewDirectMessageDialogProps) => {
   const { toast } = useToast();
+  const { callEdgeFunction } = useEdgeFunctionAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(false);
@@ -74,15 +76,13 @@ export const NewDirectMessageDialog = ({
   const handleUserSelect = async (userId: string, userName: string | null) => {
     setCreating(true);
     try {
-      const { data, error } = await supabase.rpc('get_or_create_conversation', {
-        current_user_id: currentUserId,
-        other_user_id: userId,
+      const { conversationId } = await callEdgeFunction('conversations', {
+        action: 'GET_OR_CREATE_DM',
+        otherUserId: userId,
       });
 
-      if (error) throw error;
-
       onConversationCreated({
-        id: data,
+        id: conversationId,
         name: userName,
         isGroup: false,
         otherUserId: userId,

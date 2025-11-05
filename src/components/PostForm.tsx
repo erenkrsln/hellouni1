@@ -3,10 +3,10 @@ import { useUser } from "@clerk/clerk-react";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Image, Loader2 } from "lucide-react";
 import { z } from "zod";
+import { useEdgeFunctionAuth } from "@/lib/edgeFunctions";
 
 interface PostFormProps {
   onPostCreated: () => void;
@@ -22,6 +22,7 @@ const postSchema = z.object({
 export const PostForm = ({ onPostCreated }: PostFormProps) => {
   const { user } = useUser();
   const { toast } = useToast();
+  const { callEdgeFunction } = useEdgeFunctionAuth();
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -35,12 +36,10 @@ export const PostForm = ({ onPostCreated }: PostFormProps) => {
       // Validate input
       const validated = postSchema.parse({ content });
 
-      const { error } = await supabase.from("posts").insert({
-        user_id: user.id,
+      await callEdgeFunction('posts', {
+        method: 'CREATE',
         content: validated.content,
       });
-
-      if (error) throw error;
 
       setContent("");
       toast({

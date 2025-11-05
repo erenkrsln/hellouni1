@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Heart, MessageCircle, Share2, Trash2, Loader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
 import { de } from "date-fns/locale";
@@ -20,6 +19,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { z } from "zod";
+import { useEdgeFunctionAuth } from "@/lib/edgeFunctions";
 
 interface PostProps {
   post: {
@@ -57,6 +57,7 @@ const commentSchema = z.object({
 
 export const Post = ({ post, currentUserId, onPostDeleted, onPostUpdated }: PostProps) => {
   const { toast } = useToast();
+  const { callEdgeFunction } = useEdgeFunctionAuth();
   const [showComments, setShowComments] = useState(false);
   const [commentText, setCommentText] = useState("");
   const [loading, setLoading] = useState(false);
@@ -69,17 +70,15 @@ export const Post = ({ post, currentUserId, onPostDeleted, onPostUpdated }: Post
   const handleLike = async () => {
     try {
       if (isLiked) {
-        const { error } = await supabase
-          .from("post_likes")
-          .delete()
-          .eq("post_id", post.id)
-          .eq("user_id", currentUserId);
-        if (error) throw error;
+        await callEdgeFunction('likes', {
+          action: 'REMOVE',
+          postId: post.id,
+        });
       } else {
-        const { error } = await supabase
-          .from("post_likes")
-          .insert({ post_id: post.id, user_id: currentUserId });
-        if (error) throw error;
+        await callEdgeFunction('likes', {
+          action: 'ADD',
+          postId: post.id,
+        });
       }
       onPostUpdated();
     } catch (error: any) {
@@ -99,14 +98,11 @@ export const Post = ({ post, currentUserId, onPostDeleted, onPostUpdated }: Post
       // Validate input
       const validated = commentSchema.parse({ content: commentText });
       
-      const { error } = await supabase.from("post_comments").insert({
-        post_id: post.id,
-        user_id: currentUserId,
+      await callEdgeFunction('comments', {
+        postId: post.id,
         content: validated.content,
       });
 
-      if (error) throw error;
-      
       setCommentText("");
       onPostUpdated();
       toast({
@@ -134,12 +130,10 @@ export const Post = ({ post, currentUserId, onPostDeleted, onPostUpdated }: Post
 
   const handleDelete = async () => {
     try {
-      const { error } = await supabase
-        .from("posts")
-        .delete()
-        .eq("id", post.id);
-
-      if (error) throw error;
+      await callEdgeFunction('posts', {
+        method: 'DELETE',
+        postId: post.id,
+      });
       
       toast({
         title: "Erfolg",
