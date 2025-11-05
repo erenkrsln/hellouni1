@@ -1,11 +1,7 @@
 import { ClerkProvider as BaseClerkProvider } from '@clerk/clerk-react';
 import { ReactNode } from 'react';
 
-const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
-
-if (!PUBLISHABLE_KEY) {
-  throw new Error("Missing Clerk Publishable Key");
-}
+const PUBLISHABLE_KEY = 'pk_test_c2VjdXJlLWNvYnJhLTUwLmNsZXJrLmFjY291bnRzLmRldiQ';
 
 export function ClerkProvider({ children }: { children: ReactNode }) {
   return (
