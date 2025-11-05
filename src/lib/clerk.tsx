@@ -1,7 +1,7 @@
 import { ClerkProvider as BaseClerkProvider } from '@clerk/clerk-react';
 import { ReactNode } from 'react';
 
-const PUBLISHABLE_KEY = 'pk_test_c2VjdXJlLWNvYnJhLTUwLmNsZXJrLmFjY291bnRzLmRldiQ';
+const PUBLISHABLE_KEY = 'pk_test_c29jaWFsLWNyYXlmaXNoLTYxLmNsZXJrLmFjY291bnRzLmRldiQ';
 
 export function ClerkProvider({ children }: { children: ReactNode }) {
   return (
