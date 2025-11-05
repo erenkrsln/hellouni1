@@ -25,14 +25,14 @@ export const Hero = () => {
               HelloUni
             </span>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <SignInButton mode="modal">
-              <Button variant="ghost" className="font-medium">
+              <Button variant="ghost" size="sm" className="font-medium text-xs sm:text-sm px-2 sm:px-4">
                 Anmelden
               </Button>
             </SignInButton>
             <SignUpButton mode="modal">
-              <Button className="font-medium shadow-warm">
+              <Button size="sm" className="font-medium shadow-warm text-xs sm:text-sm px-2 sm:px-4">
                 Registrieren
               </Button>
             </SignUpButton>
