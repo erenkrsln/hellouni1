@@ -21,9 +21,9 @@ export const Navigation = () => {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16 gap-4">
           {/* Logo */}
-          <div className="flex-shrink-0 font-bold text-xl text-primary">
+          <NavLink to="/home" className="flex-shrink-0 font-bold text-xl text-primary hover:opacity-80 transition-opacity">
             HelloUni
-          </div>
+          </NavLink>
 
           {/* Search Bar - Hidden on mobile */}
           <div className="hidden md:flex flex-1 max-w-md">
