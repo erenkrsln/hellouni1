@@ -53,6 +53,7 @@ export const ChatInterface = ({
   const [sending, setSending] = useState(false);
   const [participants, setParticipants] = useState<{ id: string; full_name: string | null }[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const convChannelRef = useRef<any>(null);
 
   useEffect(() => {
     fetchMessages();
@@ -138,9 +139,32 @@ export const ChatInterface = ({
       )
       .subscribe();
 
+    // Broadcast channel for immediate cross-tab updates
+    const convChannel = supabase
+      .channel(`conversation:${conversationId}`, { config: { broadcast: { self: false } } })
+      .on('broadcast', { event: 'message:new' }, async ({ payload }) => {
+        const newMsg = payload as any;
+        if (!newMsg || newMsg.conversation_id !== conversationId) return;
+
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("full_name")
+          .eq("id", newMsg.sender_id)
+          .single();
+
+        setMessages((current) => {
+          if (current.some((m) => m.id === newMsg.id)) return current;
+          return [...current, { ...newMsg, sender_profile: profile }];
+        });
+      })
+      .subscribe((status) => console.log('Broadcast channel status:', status));
+
+    convChannelRef.current = convChannel;
+
     return () => {
       supabase.removeChannel(messagesChannel);
       supabase.removeChannel(readsChannel);
+      if (convChannelRef.current) supabase.removeChannel(convChannelRef.current);
     };
   }, [conversationId, currentUserId]);
 
@@ -300,6 +324,17 @@ export const ChatInterface = ({
               : msg
           )
         );
+
+        // Broadcast to other clients in this conversation for instant updates
+        try {
+          convChannelRef.current?.send({
+            type: 'broadcast',
+            event: 'message:new',
+            payload: data,
+          });
+        } catch (e) {
+          console.log('Broadcast send failed:', e);
+        }
       }
     } catch (error: any) {
       // Remove optimistic message on error
