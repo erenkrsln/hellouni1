@@ -230,6 +230,7 @@ export type Database = {
           full_name: string | null
           id: string
           updated_at: string | null
+          username: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -238,6 +239,7 @@ export type Database = {
           full_name?: string | null
           id: string
           updated_at?: string | null
+          username?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -246,6 +248,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           updated_at?: string | null
+          username?: string | null
         }
         Relationships: []
       }
@@ -275,6 +278,10 @@ export type Database = {
           }
       is_conversation_participant: {
         Args: { conv_id: string; user_id: string }
+        Returns: boolean
+      }
+      is_user_in_conversation: {
+        Args: { check_user_id: string; conv_id: string }
         Returns: boolean
       }
       mark_message_read:

@@ -1,12 +1,15 @@
 import { Navigation } from "@/components/Navigation";
 import { useAuth } from "@/contexts/AuthContext";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { ConversationList } from "@/components/chat/ConversationList";
 import { ChatInterface } from "@/components/chat/ChatInterface";
 import { Loader2 } from "lucide-react";
 
 const Messages = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [selectedConversation, setSelectedConversation] = useState<{
     id: string;
     name: string | null;
@@ -14,6 +17,33 @@ const Messages = () => {
     otherUserId?: string;
   } | null>(null);
   const [loading] = useState(false);
+  const [checkingProfile, setCheckingProfile] = useState(true);
+
+  useEffect(() => {
+    const checkProfile = async () => {
+      if (!user) return;
+      
+      try {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('username')
+          .eq('id', user.id)
+          .maybeSingle();
+
+        if (!profile?.username) {
+          navigate('/onboarding');
+        }
+      } catch (error) {
+        // Silent fail
+      } finally {
+        setCheckingProfile(false);
+      }
+    };
+
+    if (user) {
+      checkProfile();
+    }
+  }, [user, navigate]);
 
   const handleConversationSelect = (conversation: {
     id: string;
@@ -24,8 +54,12 @@ const Messages = () => {
     setSelectedConversation(conversation);
   };
 
-  if (!user) {
-    return null;
+  if (!user || checkingProfile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
   }
 
   return (

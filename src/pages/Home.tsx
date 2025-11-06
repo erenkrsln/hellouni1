@@ -37,12 +37,39 @@ const Home = () => {
   const { toast } = useToast();
   const [posts, setPosts] = useState<PostWithProfile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [checkingProfile, setCheckingProfile] = useState(true);
 
   useEffect(() => {
     if (!authLoading && !user) {
       navigate("/");
     }
   }, [user, authLoading, navigate]);
+
+  useEffect(() => {
+    const checkProfile = async () => {
+      if (!user) return;
+      
+      try {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('username')
+          .eq('id', user.id)
+          .maybeSingle();
+
+        if (!profile?.username) {
+          navigate('/onboarding');
+        }
+      } catch (error) {
+        // Silent fail
+      } finally {
+        setCheckingProfile(false);
+      }
+    };
+
+    if (user) {
+      checkProfile();
+    }
+  }, [user, navigate]);
 
   const fetchPosts = async () => {
     try {
@@ -127,7 +154,7 @@ const Home = () => {
     fetchPosts();
   };
 
-  if (authLoading || !user) {
+  if (authLoading || checkingProfile || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin" />
