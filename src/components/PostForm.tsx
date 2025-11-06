@@ -3,7 +3,7 @@ import { useUser } from "@clerk/clerk-react";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
+import { useClerkSupabaseProxy } from "@/lib/clerkSupabase";
 import { useToast } from "@/hooks/use-toast";
 import { Image, Loader2 } from "lucide-react";
 import { z } from "zod";
@@ -22,6 +22,7 @@ const postSchema = z.object({
 export const PostForm = ({ onPostCreated }: PostFormProps) => {
   const { user } = useUser();
   const { toast } = useToast();
+  const proxy = useClerkSupabaseProxy();
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -35,12 +36,9 @@ export const PostForm = ({ onPostCreated }: PostFormProps) => {
       // Validate input
       const validated = postSchema.parse({ content });
 
-      const { error } = await supabase.from("posts").insert({
-        user_id: user.id,
+      await proxy.from("posts").insert({
         content: validated.content,
       });
-
-      if (error) throw error;
 
       setContent("");
       toast({
@@ -56,9 +54,10 @@ export const PostForm = ({ onPostCreated }: PostFormProps) => {
           variant: "destructive",
         });
       } else {
+        console.error("Error creating post:", error);
         toast({
           title: "Fehler",
-          description: error.message,
+          description: error.message || "Ein Fehler ist aufgetreten",
           variant: "destructive",
         });
       }

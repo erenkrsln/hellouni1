@@ -80,7 +80,7 @@ serve(async (req) => {
     }
 
     // Parse request body
-    const { operation, table, data, filters, select = '*' } = await req.json();
+    const { operation, table, data, filters, select = '*', order } = await req.json();
 
     // Create Supabase client with service role key
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -102,8 +102,17 @@ serve(async (req) => {
         
         if (filters) {
           Object.entries(filters).forEach(([key, value]) => {
-            query = query.eq(key, value);
+            if (key === 'user_id' && value === '$auth') {
+              query = query.eq('user_id', user.sub);
+            } else {
+              query = query.eq(key, value);
+            }
           });
+        }
+
+        if (order) {
+          const { column, ascending = false } = order;
+          query = query.order(column, { ascending });
         }
         
         result = await query;

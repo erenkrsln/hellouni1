@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Heart, MessageCircle, Share2, Trash2, Loader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { useClerkSupabaseProxy } from "@/lib/clerkSupabase";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
 import { de } from "date-fns/locale";
@@ -57,6 +57,7 @@ const commentSchema = z.object({
 
 export const Post = ({ post, currentUserId, onPostDeleted, onPostUpdated }: PostProps) => {
   const { toast } = useToast();
+  const proxy = useClerkSupabaseProxy();
   const [showComments, setShowComments] = useState(false);
   const [commentText, setCommentText] = useState("");
   const [loading, setLoading] = useState(false);
@@ -69,23 +70,21 @@ export const Post = ({ post, currentUserId, onPostDeleted, onPostUpdated }: Post
   const handleLike = async () => {
     try {
       if (isLiked) {
-        const { error } = await supabase
-          .from("post_likes")
-          .delete()
-          .eq("post_id", post.id)
-          .eq("user_id", currentUserId);
-        if (error) throw error;
+        await proxy.from("post_likes").delete({ 
+          post_id: post.id, 
+          user_id: '$auth' 
+        });
       } else {
-        const { error } = await supabase
-          .from("post_likes")
-          .insert({ post_id: post.id, user_id: currentUserId });
-        if (error) throw error;
+        await proxy.from("post_likes").insert({ 
+          post_id: post.id 
+        });
       }
       onPostUpdated();
     } catch (error: any) {
+      console.error("Error toggling like:", error);
       toast({
         title: "Fehler",
-        description: error.message,
+        description: error.message || "Ein Fehler ist aufgetreten",
         variant: "destructive",
       });
     }
@@ -99,13 +98,10 @@ export const Post = ({ post, currentUserId, onPostDeleted, onPostUpdated }: Post
       // Validate input
       const validated = commentSchema.parse({ content: commentText });
       
-      const { error } = await supabase.from("post_comments").insert({
+      await proxy.from("post_comments").insert({
         post_id: post.id,
-        user_id: currentUserId,
         content: validated.content,
       });
-
-      if (error) throw error;
       
       setCommentText("");
       onPostUpdated();
@@ -121,9 +117,10 @@ export const Post = ({ post, currentUserId, onPostDeleted, onPostUpdated }: Post
           variant: "destructive",
         });
       } else {
+        console.error("Error creating comment:", error);
         toast({
           title: "Fehler",
-          description: error.message,
+          description: error.message || "Ein Fehler ist aufgetreten",
           variant: "destructive",
         });
       }
@@ -134,12 +131,10 @@ export const Post = ({ post, currentUserId, onPostDeleted, onPostUpdated }: Post
 
   const handleDelete = async () => {
     try {
-      const { error } = await supabase
-        .from("posts")
-        .delete()
-        .eq("id", post.id);
-
-      if (error) throw error;
+      await proxy.from("posts").delete({ 
+        id: post.id, 
+        user_id: '$auth' 
+      });
       
       toast({
         title: "Erfolg",
@@ -147,9 +142,10 @@ export const Post = ({ post, currentUserId, onPostDeleted, onPostUpdated }: Post
       });
       onPostDeleted();
     } catch (error: any) {
+      console.error("Error deleting post:", error);
       toast({
         title: "Fehler",
-        description: error.message,
+        description: error.message || "Ein Fehler ist aufgetreten",
         variant: "destructive",
       });
     }

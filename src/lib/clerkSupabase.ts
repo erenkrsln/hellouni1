@@ -8,6 +8,7 @@ interface ProxyRequest {
   data?: any;
   filters?: Record<string, any>;
   select?: string;
+  order?: { column: string; ascending?: boolean };
 }
 
 export const useClerkSupabaseProxy = () => {
@@ -34,30 +35,41 @@ export const useClerkSupabaseProxy = () => {
       throw new Error(error.error || 'Query failed');
     }
 
-    return response.json();
+    const result = await response.json();
+    return result.data;
   };
 
   return {
     from: (table: string) => ({
-      select: async (columns = '*') => {
-        return executeQuery({ operation: 'select', table, select: columns });
+      select: async (columns = '*', order?: { column: string; ascending?: boolean }) => {
+        const result = await executeQuery({ 
+          operation: 'select', 
+          table, 
+          select: columns,
+          order 
+        });
+        return { data: result };
       },
       insert: async (data: any) => {
-        return executeQuery({ operation: 'insert', table, data });
+        const result = await executeQuery({ operation: 'insert', table, data });
+        return { data: result };
       },
       update: async (data: any, filters?: Record<string, any>) => {
-        return executeQuery({ operation: 'update', table, data, filters });
+        const result = await executeQuery({ operation: 'update', table, data, filters });
+        return { data: result };
       },
       delete: async (filters: Record<string, any>) => {
-        return executeQuery({ operation: 'delete', table, filters });
+        const result = await executeQuery({ operation: 'delete', table, filters });
+        return { data: result };
       },
     }),
     rpc: async (function_name: string, params: any) => {
-      return executeQuery({ 
+      const result = await executeQuery({ 
         operation: 'rpc', 
         table: '', 
         data: { function_name, params } 
       });
+      return { data: result };
     },
   };
 };

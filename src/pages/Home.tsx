@@ -1,14 +1,13 @@
 import { useUser } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Navigation } from "@/components/Navigation";
 import { PostForm } from "@/components/PostForm";
 import { Post } from "@/components/Post";
 import { Loader2 } from "lucide-react";
 import { useSyncClerkProfile } from "@/hooks/useSyncClerkProfile";
-import { useClerkSupabaseAuth } from "@/hooks/useClerkSupabaseAuth";
+import { useClerkSupabaseProxy } from "@/lib/clerkSupabase";
 
 interface PostWithProfile {
   id: string;
@@ -39,12 +38,10 @@ const Home = () => {
   const { toast } = useToast();
   const [posts, setPosts] = useState<PostWithProfile[]>([]);
   const [loading, setLoading] = useState(true);
+  const proxy = useClerkSupabaseProxy();
   
   // Sync Clerk profile to Supabase
   useSyncClerkProfile();
-  
-  // Sync Clerk JWT with Supabase auth
-  useClerkSupabaseAuth();
 
   useEffect(() => {
     if (isLoaded && !user) {
@@ -54,61 +51,22 @@ const Home = () => {
 
   const fetchPosts = async () => {
     try {
-      const { data: postsData, error: postsError } = await supabase
-        .from("posts")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (postsError) throw postsError;
-
-      const postsWithDetails = await Promise.all(
-        (postsData || []).map(async (post) => {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("full_name, avatar_url")
-            .eq("id", post.user_id)
-            .single();
-
-          const { data: likes } = await supabase
-            .from("post_likes")
-            .select("user_id")
-            .eq("post_id", post.id);
-
-          const { data: comments } = await supabase
-            .from("post_comments")
-            .select("*")
-            .eq("post_id", post.id)
-            .order("created_at", { ascending: true });
-
-          const commentsWithProfiles = await Promise.all(
-            (comments || []).map(async (comment) => {
-              const { data: commentProfile } = await supabase
-                .from("profiles")
-                .select("full_name, avatar_url")
-                .eq("id", comment.user_id)
-                .single();
-
-              return {
-                ...comment,
-                profiles: commentProfile,
-              };
-            })
-          );
-
-          return {
-            ...post,
-            profiles: profile,
-            post_likes: likes || [],
-            post_comments: commentsWithProfiles,
-          };
-        })
+      const postsResult = await proxy.from("posts").select(
+        "*, profiles!posts_user_id_fkey(full_name, avatar_url), post_likes(user_id), post_comments(id, content, created_at, user_id, profiles!post_comments_user_id_fkey(full_name, avatar_url))",
+        { column: 'created_at', ascending: false }
       );
 
-      setPosts(postsWithDetails);
+      if (!postsResult.data) {
+        setPosts([]);
+        return;
+      }
+
+      setPosts(postsResult.data);
     } catch (error: any) {
+      console.error("Error fetching posts:", error);
       toast({
         title: "Fehler beim Laden der Beiträge",
-        description: error.message,
+        description: error.message || "Ein Fehler ist aufgetreten",
         variant: "destructive",
       });
     } finally {
