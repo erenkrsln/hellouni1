@@ -191,11 +191,14 @@ export const Post = ({ post, currentUserId, onPostDeleted, onPostUpdated }: Post
         <div className="flex items-center gap-3">
           <Avatar>
             <AvatarFallback>
-              {post.profiles?.username?.[0]?.toUpperCase() || "U"}
+              {post.profiles?.full_name?.[0]?.toUpperCase() || post.profiles?.username?.[0]?.toUpperCase() || "U"}
             </AvatarFallback>
           </Avatar>
           <div>
-            <p className="font-semibold">@{post.profiles?.username || "unbekannt"}</p>
+            <div className="flex items-center gap-1.5">
+              <p className="font-semibold">{post.profiles?.full_name || "Unbekannt"}</p>
+              <p className="text-sm text-muted-foreground">@{post.profiles?.username || "unbekannt"}</p>
+            </div>
             <p className="text-sm text-muted-foreground">
               {formatDistanceToNow(new Date(post.created_at), { addSuffix: true, locale: de })}
             </p>
@@ -274,13 +277,14 @@ export const Post = ({ post, currentUserId, onPostDeleted, onPostUpdated }: Post
             <div key={comment.id} className="flex gap-2">
               <Avatar className="h-8 w-8">
                 <AvatarFallback className="text-xs">
-                  {comment.profiles?.username?.[0]?.toUpperCase() || "U"}
+                  {comment.profiles?.full_name?.[0]?.toUpperCase() || comment.profiles?.username?.[0]?.toUpperCase() || "U"}
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 bg-muted rounded-lg p-3">
-                <p className="font-semibold text-sm">
-                  @{comment.profiles?.username || "unbekannt"}
-                </p>
+                <div className="flex items-center gap-1.5 mb-1">
+                  <p className="font-semibold text-sm">{comment.profiles?.full_name || "Unbekannt"}</p>
+                  <p className="text-xs text-muted-foreground">@{comment.profiles?.username || "unbekannt"}</p>
+                </div>
                 <p className="text-sm">{comment.content}</p>
                 <p className="text-xs text-muted-foreground mt-1">
                   {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true, locale: de })}
