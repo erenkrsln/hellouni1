@@ -60,20 +60,26 @@ export const Post = ({ post, currentUserId, onPostDeleted, onPostUpdated }: Post
   const [showComments, setShowComments] = useState(false);
   const [commentText, setCommentText] = useState("");
   const [loading, setLoading] = useState(false);
-  const [liking, setLiking] = useState(false);
+  const [optimisticLikes, setOptimisticLikes] = useState<{ user_id: string }[] | null>(null);
   
-  const isLiked = post.post_likes.some(like => like.user_id === currentUserId);
-  const likesCount = post.post_likes.length;
+  const currentLikes = optimisticLikes || post.post_likes;
+  const isLiked = currentLikes.some(like => like.user_id === currentUserId);
+  const likesCount = currentLikes.length;
   const commentsCount = post.post_comments.length;
   const isOwnPost = post.user_id === currentUserId;
 
   const handleLike = async () => {
-    if (liking) return; // Prevent double clicks
+    const wasLiked = isLiked;
     
-    setLiking(true);
+    // Optimistic update
+    if (wasLiked) {
+      setOptimisticLikes(currentLikes.filter(like => like.user_id !== currentUserId));
+    } else {
+      setOptimisticLikes([...currentLikes, { user_id: currentUserId }]);
+    }
 
     try {
-      if (isLiked) {
+      if (wasLiked) {
         const { error } = await supabase
           .from("post_likes")
           .delete()
@@ -89,15 +95,17 @@ export const Post = ({ post, currentUserId, onPostDeleted, onPostUpdated }: Post
         if (error) throw error;
       }
       
+      // Success - reset optimistic state and sync with DB
+      setOptimisticLikes(null);
       onPostUpdated();
     } catch (error: any) {
+      // Revert optimistic update on error
+      setOptimisticLikes(null);
       toast({
         title: "Fehler",
         description: error.message || "Ein Fehler ist aufgetreten",
         variant: "destructive",
       });
-    } finally {
-      setLiking(false);
     }
   };
 
@@ -224,7 +232,6 @@ export const Post = ({ post, currentUserId, onPostDeleted, onPostUpdated }: Post
           variant="ghost"
           size="sm"
           onClick={handleLike}
-          disabled={liking}
           className={isLiked ? "text-red-500" : ""}
         >
           <Heart className={`h-4 w-4 mr-1 ${isLiked ? "fill-current" : ""}`} />
