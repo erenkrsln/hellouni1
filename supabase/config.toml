@@ -1,1 +1,4 @@
 project_id = "clocqduyspkcqtrihbqm"
+
+[functions.clerk-proxy]
+verify_jwt = false
