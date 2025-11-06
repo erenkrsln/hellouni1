@@ -5,6 +5,7 @@ import { ConversationList } from "@/components/chat/ConversationList";
 import { ChatInterface } from "@/components/chat/ChatInterface";
 import { Loader2 } from "lucide-react";
 import { useSyncClerkProfile } from "@/hooks/useSyncClerkProfile";
+import { useClerkSupabaseAuth } from "@/hooks/useClerkSupabaseAuth";
 
 const Messages = () => {
   const { user } = useUser();
@@ -18,6 +19,9 @@ const Messages = () => {
   
   // Sync Clerk profile to Supabase
   useSyncClerkProfile();
+  
+  // Sync Clerk JWT with Supabase auth
+  useClerkSupabaseAuth();
 
   const handleConversationSelect = (conversation: {
     id: string;

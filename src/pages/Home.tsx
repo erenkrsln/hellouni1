@@ -8,6 +8,7 @@ import { PostForm } from "@/components/PostForm";
 import { Post } from "@/components/Post";
 import { Loader2 } from "lucide-react";
 import { useSyncClerkProfile } from "@/hooks/useSyncClerkProfile";
+import { useClerkSupabaseAuth } from "@/hooks/useClerkSupabaseAuth";
 
 interface PostWithProfile {
   id: string;
@@ -41,6 +42,9 @@ const Home = () => {
   
   // Sync Clerk profile to Supabase
   useSyncClerkProfile();
+  
+  // Sync Clerk JWT with Supabase auth
+  useClerkSupabaseAuth();
 
   useEffect(() => {
     if (isLoaded && !user) {
