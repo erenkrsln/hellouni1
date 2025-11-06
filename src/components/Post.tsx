@@ -60,18 +60,17 @@ export const Post = ({ post, currentUserId, onPostDeleted, onPostUpdated }: Post
   const [showComments, setShowComments] = useState(false);
   const [commentText, setCommentText] = useState("");
   const [loading, setLoading] = useState(false);
-  const [optimisticLiked, setOptimisticLiked] = useState(false);
-  const [optimisticLikesCount, setOptimisticLikesCount] = useState(0);
+  const [liking, setLiking] = useState(false);
   
-  const isLiked = optimisticLiked || post.post_likes.some(like => like.user_id === currentUserId);
-  const likesCount = optimisticLikesCount || post.post_likes.length;
+  const isLiked = post.post_likes.some(like => like.user_id === currentUserId);
+  const likesCount = post.post_likes.length;
   const commentsCount = post.post_comments.length;
   const isOwnPost = post.user_id === currentUserId;
 
   const handleLike = async () => {
-    // Optimistic update
-    setOptimisticLiked(!isLiked);
-    setOptimisticLikesCount(isLiked ? likesCount - 1 : likesCount + 1);
+    if (liking) return; // Prevent double clicks
+    
+    setLiking(true);
 
     try {
       if (isLiked) {
@@ -90,19 +89,15 @@ export const Post = ({ post, currentUserId, onPostDeleted, onPostUpdated }: Post
         if (error) throw error;
       }
       
-      // Reset optimistic state and refresh
-      setOptimisticLiked(false);
-      setOptimisticLikesCount(0);
       onPostUpdated();
     } catch (error: any) {
-      // Revert on error
-      setOptimisticLiked(false);
-      setOptimisticLikesCount(0);
       toast({
         title: "Fehler",
         description: error.message || "Ein Fehler ist aufgetreten",
         variant: "destructive",
       });
+    } finally {
+      setLiking(false);
     }
   };
 
@@ -229,6 +224,7 @@ export const Post = ({ post, currentUserId, onPostDeleted, onPostUpdated }: Post
           variant="ghost"
           size="sm"
           onClick={handleLike}
+          disabled={liking}
           className={isLiked ? "text-red-500" : ""}
         >
           <Heart className={`h-4 w-4 mr-1 ${isLiked ? "fill-current" : ""}`} />
