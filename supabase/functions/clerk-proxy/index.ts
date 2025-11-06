@@ -200,13 +200,20 @@ serve(async (req) => {
       }
 
       case 'insert': {
-        // Automatically set user_id if field exists and not provided
+        // Automatically set user_id/sender_id if field exists and not provided
         const insertData = { ...data };
-        if (!insertData.user_id && table !== 'profiles') {
-          insertData.user_id = user.sub;
+        
+        // Handle messages table (uses sender_id)
+        if (table === 'messages' && !insertData.sender_id) {
+          insertData.sender_id = user.sub;
         }
-        if (table === 'profiles' && !insertData.id) {
+        // Handle profiles table (uses id)
+        else if (table === 'profiles' && !insertData.id) {
           insertData.id = user.sub;
+        }
+        // Handle other tables (use user_id)
+        else if (!insertData.user_id && table !== 'profiles' && table !== 'messages') {
+          insertData.user_id = user.sub;
         }
         
         result = await supabase.from(table).insert(insertData).select();
