@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -59,6 +60,7 @@ const commentSchema = z.object({
 
 export const Post = ({ post, currentUserId, onPostDeleted, onPostUpdated }: PostProps) => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [showComments, setShowComments] = useState(false);
   const [commentText, setCommentText] = useState("");
   const [loading, setLoading] = useState(false);
@@ -189,15 +191,28 @@ export const Post = ({ post, currentUserId, onPostDeleted, onPostUpdated }: Post
       {/* Post Header */}
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
-          <Avatar>
+          <Avatar 
+            className="cursor-pointer hover:opacity-80 transition-opacity"
+            onClick={() => post.profiles?.username && navigate(`/profile/${post.profiles.username}`)}
+          >
             <AvatarFallback>
               {post.profiles?.full_name?.[0]?.toUpperCase() || post.profiles?.username?.[0]?.toUpperCase() || "U"}
             </AvatarFallback>
           </Avatar>
           <div>
             <div className="flex items-center gap-1.5">
-              <p className="font-semibold">{post.profiles?.full_name || "Unbekannt"}</p>
-              <p className="text-sm text-muted-foreground">@{post.profiles?.username || "unbekannt"}</p>
+              <p 
+                className="font-semibold cursor-pointer hover:underline"
+                onClick={() => post.profiles?.username && navigate(`/profile/${post.profiles.username}`)}
+              >
+                {post.profiles?.full_name || "Unbekannt"}
+              </p>
+              <p 
+                className="text-sm text-muted-foreground cursor-pointer hover:underline"
+                onClick={() => post.profiles?.username && navigate(`/profile/${post.profiles.username}`)}
+              >
+                @{post.profiles?.username || "unbekannt"}
+              </p>
             </div>
             <p className="text-sm text-muted-foreground">
               {formatDistanceToNow(new Date(post.created_at), { addSuffix: true, locale: de })}
@@ -275,15 +290,28 @@ export const Post = ({ post, currentUserId, onPostDeleted, onPostUpdated }: Post
 
           {post.post_comments.map((comment) => (
             <div key={comment.id} className="flex gap-2">
-              <Avatar className="h-8 w-8">
+              <Avatar 
+                className="h-8 w-8 cursor-pointer hover:opacity-80 transition-opacity"
+                onClick={() => comment.profiles?.username && navigate(`/profile/${comment.profiles.username}`)}
+              >
                 <AvatarFallback className="text-xs">
                   {comment.profiles?.full_name?.[0]?.toUpperCase() || comment.profiles?.username?.[0]?.toUpperCase() || "U"}
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 bg-muted rounded-lg p-3">
                 <div className="flex items-center gap-1.5 mb-1">
-                  <p className="font-semibold text-sm">{comment.profiles?.full_name || "Unbekannt"}</p>
-                  <p className="text-xs text-muted-foreground">@{comment.profiles?.username || "unbekannt"}</p>
+                  <p 
+                    className="font-semibold text-sm cursor-pointer hover:underline"
+                    onClick={() => comment.profiles?.username && navigate(`/profile/${comment.profiles.username}`)}
+                  >
+                    {comment.profiles?.full_name || "Unbekannt"}
+                  </p>
+                  <p 
+                    className="text-xs text-muted-foreground cursor-pointer hover:underline"
+                    onClick={() => comment.profiles?.username && navigate(`/profile/${comment.profiles.username}`)}
+                  >
+                    @{comment.profiles?.username || "unbekannt"}
+                  </p>
                 </div>
                 <p className="text-sm">{comment.content}</p>
                 <p className="text-xs text-muted-foreground mt-1">
