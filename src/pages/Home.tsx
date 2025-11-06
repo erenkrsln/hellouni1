@@ -15,6 +15,7 @@ interface PostWithProfile {
   created_at: string;
   user_id: string;
   profiles: {
+    username: string | null;
     full_name: string | null;
     avatar_url: string | null;
   } | null;
@@ -25,6 +26,7 @@ interface PostWithProfile {
     created_at: string;
     user_id: string;
     profiles: {
+      username: string | null;
       full_name: string | null;
       avatar_url: string | null;
     } | null;
@@ -89,7 +91,7 @@ const Home = () => {
       // Fetch profiles separately
       const { data: profilesData } = await supabase
         .from("profiles")
-        .select("id, full_name, avatar_url");
+        .select("id, username, full_name, avatar_url");
 
       // Fetch likes
       const { data: likesData } = await supabase

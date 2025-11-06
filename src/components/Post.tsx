@@ -28,6 +28,7 @@ interface PostProps {
     created_at: string;
     user_id: string;
     profiles: {
+      username: string | null;
       full_name: string | null;
       avatar_url: string | null;
     } | null;
@@ -38,6 +39,7 @@ interface PostProps {
       created_at: string;
       user_id: string;
       profiles: {
+        username: string | null;
         full_name: string | null;
         avatar_url: string | null;
       } | null;
@@ -189,11 +191,11 @@ export const Post = ({ post, currentUserId, onPostDeleted, onPostUpdated }: Post
         <div className="flex items-center gap-3">
           <Avatar>
             <AvatarFallback>
-              {post.profiles?.full_name?.[0]?.toUpperCase() || "U"}
+              {post.profiles?.username?.[0]?.toUpperCase() || "U"}
             </AvatarFallback>
           </Avatar>
           <div>
-            <p className="font-semibold">{post.profiles?.full_name || "Unbekannter Nutzer"}</p>
+            <p className="font-semibold">@{post.profiles?.username || "unbekannt"}</p>
             <p className="text-sm text-muted-foreground">
               {formatDistanceToNow(new Date(post.created_at), { addSuffix: true, locale: de })}
             </p>
@@ -272,12 +274,12 @@ export const Post = ({ post, currentUserId, onPostDeleted, onPostUpdated }: Post
             <div key={comment.id} className="flex gap-2">
               <Avatar className="h-8 w-8">
                 <AvatarFallback className="text-xs">
-                  {comment.profiles?.full_name?.[0]?.toUpperCase() || "U"}
+                  {comment.profiles?.username?.[0]?.toUpperCase() || "U"}
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 bg-muted rounded-lg p-3">
                 <p className="font-semibold text-sm">
-                  {comment.profiles?.full_name || "Unbekannter Nutzer"}
+                  @{comment.profiles?.username || "unbekannt"}
                 </p>
                 <p className="text-sm">{comment.content}</p>
                 <p className="text-xs text-muted-foreground mt-1">
