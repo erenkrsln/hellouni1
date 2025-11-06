@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useClerkSupabaseProxy } from "@/lib/clerkSupabase";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -40,7 +39,6 @@ export const ConversationList = ({
   selectedConversationId 
 }: ConversationListProps) => {
   const { toast } = useToast();
-  const proxy = useClerkSupabaseProxy();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
@@ -53,17 +51,18 @@ export const ConversationList = ({
 
   const fetchConversations = async () => {
     try {
-      // Get all conversations for the current user
-      const userConvs = await proxy.from("conversation_participants")
-        .select("conversation_id", undefined, { user_id: currentUserId });
+      const { data: userConvs } = await supabase
+        .from("conversation_participants")
+        .select("conversation_id")
+        .eq("user_id", currentUserId);
 
-      if (!userConvs.data) {
+      if (!userConvs) {
         setConversations([]);
         setLoading(false);
         return;
       }
 
-      const conversationIds = userConvs.data.map((c: any) => c.conversation_id);
+      const conversationIds = userConvs.map(c => c.conversation_id);
 
       if (conversationIds.length === 0) {
         setConversations([]);
@@ -73,12 +72,12 @@ export const ConversationList = ({
 
       // Get conversation details and participants
       const [convResult, allParticipantsResult, profilesResult] = await Promise.all([
-        proxy.from("conversations").select("id, name, is_group"),
-        proxy.from("conversation_participants").select("conversation_id, user_id"),
-        proxy.from("profiles").select("id, full_name, email"),
+        supabase.from("conversations").select("id, name, is_group").in("id", conversationIds),
+        supabase.from("conversation_participants").select("conversation_id, user_id"),
+        supabase.from("profiles").select("id, full_name, email"),
       ]);
 
-      const convData = convResult.data?.filter((c: any) => conversationIds.includes(c.id)) || [];
+      const convData = convResult.data || [];
       const allParticipants = allParticipantsResult.data || [];
       const allProfiles = profilesResult.data || [];
 

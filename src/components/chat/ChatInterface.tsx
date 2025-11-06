@@ -1,6 +1,5 @@
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useClerkSupabaseProxy } from "@/lib/clerkSupabase";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -48,7 +47,6 @@ export const ChatInterface = ({
   onBack
 }: ChatInterfaceProps) => {
   const { toast } = useToast();
-  const proxy = useClerkSupabaseProxy();
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
@@ -179,65 +177,67 @@ export const ChatInterface = ({
 
   const fetchParticipants = async () => {
     try {
-      const participantData = await proxy.from("conversation_participants")
-        .select("user_id", undefined, { conversation_id: conversationId });
+      const { data: participantData } = await supabase
+        .from("conversation_participants")
+        .select("user_id")
+        .eq("conversation_id", conversationId);
 
-      if (!participantData.data) return;
+      if (!participantData) return;
       
-      const userIds = participantData.data.map((p: any) => p.user_id);
+      const userIds = participantData.map(p => p.user_id);
       
       if (userIds.length > 0) {
-        const profileData = await proxy.from("profiles").select("id, full_name");
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("id, full_name")
+          .in("id", userIds);
           
-        setParticipants(
-          profileData.data?.filter((p: any) => userIds.includes(p.id)).map((p: any) => ({
-            id: p.id,
-            full_name: p.full_name,
-          })) || []
-        );
+        setParticipants(profileData || []);
       }
     } catch (error) {
-      console.error("Error fetching participants:", error);
+      // Silent fail
     }
   };
 
   const fetchMessages = async () => {
     try {
-      const messagesData = await proxy.from("messages")
-        .select("*", { column: 'created_at', ascending: true }, { conversation_id: conversationId });
+      const { data: messagesData } = await supabase
+        .from("messages")
+        .select("*")
+        .eq("conversation_id", conversationId)
+        .order('created_at', { ascending: true });
 
-      if (!messagesData.data || messagesData.data.length === 0) {
+      if (!messagesData || messagesData.length === 0) {
         setMessages([]);
         setLoading(false);
         return;
       }
 
-      // Batch fetch all sender profiles
-      const senderIds = [...new Set(messagesData.data.map((msg: any) => msg.sender_id))];
-      const profilesResult = await proxy.from("profiles").select("id, full_name");
+      // Batch fetch profiles
+      const senderIds = [...new Set(messagesData.map(msg => msg.sender_id))];
+      const { data: profilesData } = await supabase
+        .from("profiles")
+        .select("id, full_name")
+        .in("id", senderIds);
       
-      const profilesMap = new Map(
-        (profilesResult.data || [])
-          .filter((p: any) => senderIds.includes(p.id))
-          .map((p: any) => [p.id, p])
-      );
+      const profilesMap = new Map(profilesData?.map(p => [p.id, p]) || []);
 
-      // Batch fetch all read receipts
-      const messageIds = messagesData.data.map((msg: any) => msg.id);
-      const readsResult = await proxy.from("message_reads").select("message_id, user_id");
+      // Batch fetch read receipts
+      const messageIds = messagesData.map(msg => msg.id);
+      const { data: readsData } = await supabase
+        .from("message_reads")
+        .select("message_id, user_id")
+        .in("message_id", messageIds);
 
       const readsMap = new Map<string, string[]>();
-      (readsResult.data || [])
-        .filter((read: any) => messageIds.includes(read.message_id))
-        .forEach((read: any) => {
-          if (!readsMap.has(read.message_id)) {
-            readsMap.set(read.message_id, []);
-          }
-          readsMap.get(read.message_id)!.push(read.user_id);
-        });
+      readsData?.forEach(read => {
+        if (!readsMap.has(read.message_id)) {
+          readsMap.set(read.message_id, []);
+        }
+        readsMap.get(read.message_id)!.push(read.user_id);
+      });
 
-      // Combine data
-      const messagesWithDetails = messagesData.data.map((msg: any) => ({
+      const messagesWithDetails = messagesData.map(msg => ({
         ...msg,
         sender_profile: profilesMap.get(msg.sender_id) || null,
         read_by: readsMap.get(msg.id) || [],
@@ -247,17 +247,16 @@ export const ChatInterface = ({
 
       // Mark unread messages as read
       const unreadMessages = messagesWithDetails.filter(
-        (msg: any) => msg.sender_id !== currentUserId && !msg.read_by.includes(currentUserId)
+        msg => msg.sender_id !== currentUserId && !msg.read_by.includes(currentUserId)
       );
 
       for (const msg of unreadMessages) {
-        await proxy.rpc('mark_message_read', { 
+        await supabase.rpc('mark_message_read', { 
           msg_id: msg.id,
           reader_user_id: currentUserId 
         });
       }
     } catch (error: any) {
-      console.error("Error fetching messages:", error);
       toast({
         title: "Fehler",
         description: error.message,
@@ -277,53 +276,51 @@ export const ChatInterface = ({
     const messageContent = newMessage;
     
     try {
-      // Validate input
       const validated = messageSchema.parse({ content: messageContent });
       
-      // Optimistic update: Add message immediately to UI
+      // Optimistic update
       const tempMessage: Message = {
         id: `temp-${Date.now()}`,
         sender_id: currentUserId,
         content: validated.content,
         created_at: new Date().toISOString(),
-        sender_profile: {
-          full_name: null,
-        },
+        sender_profile: { full_name: null },
         read_by: [currentUserId],
       };
       
       setMessages((current) => [...current, tempMessage]);
       setNewMessage("");
       
-      const data = await proxy.from("messages").insert({
-        conversation_id: conversationId,
-        sender_id: currentUserId,
-        content: validated.content,
-      });
+      const { data, error } = await supabase
+        .from("messages")
+        .insert({
+          conversation_id: conversationId,
+          sender_id: currentUserId,
+          content: validated.content,
+        })
+        .select()
+        .single();
 
-      if (!data.data) throw new Error("Failed to send message");
+      if (error) throw error;
       
       // Replace temp message with real one
-      if (data.data) {
-        const realMessage = Array.isArray(data.data) ? data.data[0] : data.data;
-        setMessages((current) => 
-          current.map((msg) => 
-            msg.id === tempMessage.id 
-              ? { ...realMessage, sender_profile: tempMessage.sender_profile, read_by: tempMessage.read_by }
-              : msg
-          )
-        );
+      setMessages((current) => 
+        current.map((msg) => 
+          msg.id === tempMessage.id 
+            ? { ...data, sender_profile: tempMessage.sender_profile, read_by: tempMessage.read_by }
+            : msg
+        )
+      );
 
-        // Broadcast to other clients in this conversation for instant updates
-        try {
-          convChannelRef.current?.send({
-            type: 'broadcast',
-            event: 'message:new',
-            payload: realMessage,
-          });
-        } catch (e) {
-          console.log('Broadcast send failed:', e);
-        }
+      // Broadcast
+      try {
+        convChannelRef.current?.send({
+          type: 'broadcast',
+          event: 'message:new',
+          payload: data,
+        });
+      } catch (e) {
+        // Silent fail
       }
     } catch (error: any) {
       // Remove optimistic message on error

@@ -1,23 +1,25 @@
 import { Home, MessageCircle, Bell, Search, Calendar, MoreVertical, User, Settings, LogOut } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { Input } from "@/components/ui/input";
-import { UserButton, useClerk } from "@clerk/clerk-react";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import HelloUniLogo from "@/assets/HelloUni_Logo.svg";
+
 export const Navigation = () => {
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [searchQuery, setSearchQuery] = useState("");
-  const {
-    signOut
-  } = useClerk();
+  const { user } = useAuth();
   const navigate = useNavigate();
+  
   const handleSignOut = async () => {
-    await signOut();
+    await supabase.auth.signOut();
     navigate("/");
   };
   return <nav className="sticky top-0 z-50 bg-card border-b shadow-sm">
@@ -64,9 +66,34 @@ export const Navigation = () => {
             </Popover>
 
             {/* Desktop User Profile */}
-            <div className="flex-shrink-0">
-              <UserButton afterSignOutUrl="/" />
-            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="rounded-full">
+                  <Avatar>
+                    <AvatarFallback>
+                      {user?.email?.[0]?.toUpperCase() || "U"}
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>Mein Account</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem>
+                  <User className="mr-2 h-4 w-4" />
+                  <span>Profil</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <Settings className="mr-2 h-4 w-4" />
+                  <span>Einstellungen</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleSignOut}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Abmelden</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
           {/* Mobile Navigation */}

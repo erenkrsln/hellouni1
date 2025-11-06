@@ -1,19 +1,19 @@
 import { Button } from "@/components/ui/button";
-import { SignInButton, SignUpButton, useUser } from "@clerk/clerk-react";
 import { ArrowRight, Users, BookOpen, Calendar } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import HelloUniLogo from "@/assets/HelloUni_Logo.svg";
 
 export const Hero = () => {
-  const { isSignedIn, isLoaded } = useUser();
+  const { user, loading } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (isLoaded && isSignedIn) {
+    if (!loading && user) {
       navigate("/home");
     }
-  }, [isSignedIn, isLoaded, navigate]);
+  }, [user, loading, navigate]);
 
   return (
     <div className="min-h-screen gradient-hero">
@@ -24,16 +24,14 @@ export const Hero = () => {
             <img src={HelloUniLogo} alt="HelloUni" className="h-16 w-auto" />
           </div>
           <div className="flex items-center gap-2">
-            <SignInButton mode="modal">
-              <Button variant="ghost" size="sm" className="font-medium text-xs sm:text-sm px-2 sm:px-4">
-                Anmelden
-              </Button>
-            </SignInButton>
-            <SignUpButton mode="modal">
-              <Button size="sm" className="font-medium shadow-warm text-xs sm:text-sm px-2 sm:px-4">
-                Registrieren
-              </Button>
-            </SignUpButton>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="font-medium text-xs sm:text-sm px-2 sm:px-4"
+              onClick={() => navigate("/auth")}
+            >
+              Anmelden
+            </Button>
           </div>
         </nav>
       </header>
@@ -60,17 +58,14 @@ export const Hero = () => {
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
-            <SignUpButton mode="modal">
-              <Button size="lg" className="w-full sm:w-auto font-semibold shadow-warm text-base">
-                Kostenlos starten
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-            </SignUpButton>
-            <SignInButton mode="modal">
-              <Button size="lg" variant="outline" className="w-full sm:w-auto font-semibold text-base">
-                Bereits dabei? Anmelden
-              </Button>
-            </SignInButton>
+            <Button 
+              size="lg" 
+              className="w-full sm:w-auto font-semibold shadow-warm text-base"
+              onClick={() => navigate("/auth")}
+            >
+              Kostenlos starten
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
           </div>
 
           {/* Feature Cards */}

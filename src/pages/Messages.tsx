@@ -1,13 +1,12 @@
 import { Navigation } from "@/components/Navigation";
-import { useUser } from "@clerk/clerk-react";
+import { useAuth } from "@/contexts/AuthContext";
 import { useState } from "react";
 import { ConversationList } from "@/components/chat/ConversationList";
 import { ChatInterface } from "@/components/chat/ChatInterface";
 import { Loader2 } from "lucide-react";
-import { useSyncClerkProfile } from "@/hooks/useSyncClerkProfile";
 
 const Messages = () => {
-  const { user } = useUser();
+  const { user } = useAuth();
   const [selectedConversation, setSelectedConversation] = useState<{
     id: string;
     name: string | null;
@@ -15,9 +14,6 @@ const Messages = () => {
     otherUserId?: string;
   } | null>(null);
   const [loading] = useState(false);
-  
-  // Sync Clerk profile to Supabase
-  useSyncClerkProfile();
 
   const handleConversationSelect = (conversation: {
     id: string;

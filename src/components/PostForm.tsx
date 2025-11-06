@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { useUser } from "@clerk/clerk-react";
+import { useAuth } from "@/contexts/AuthContext";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { useClerkSupabaseProxy } from "@/lib/clerkSupabase";
+import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Image, Loader2 } from "lucide-react";
 import { z } from "zod";
@@ -20,9 +20,8 @@ const postSchema = z.object({
 });
 
 export const PostForm = ({ onPostCreated }: PostFormProps) => {
-  const { user } = useUser();
+  const { user } = useAuth();
   const { toast } = useToast();
-  const proxy = useClerkSupabaseProxy();
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -33,12 +32,16 @@ export const PostForm = ({ onPostCreated }: PostFormProps) => {
 
     setLoading(true);
     try {
-      // Validate input
       const validated = postSchema.parse({ content });
 
-      await proxy.from("posts").insert({
-        content: validated.content,
-      });
+      const { error } = await supabase
+        .from("posts")
+        .insert({
+          content: validated.content,
+          user_id: user.id,
+        });
+
+      if (error) throw error;
 
       setContent("");
       toast({
@@ -54,7 +57,6 @@ export const PostForm = ({ onPostCreated }: PostFormProps) => {
           variant: "destructive",
         });
       } else {
-        console.error("Error creating post:", error);
         toast({
           title: "Fehler",
           description: error.message || "Ein Fehler ist aufgetreten",
@@ -70,7 +72,7 @@ export const PostForm = ({ onPostCreated }: PostFormProps) => {
     <Card className="p-4">
       <form onSubmit={handleSubmit} className="space-y-4">
         <Textarea
-          placeholder={`Was gibt's Neues, ${user?.firstName || ""}?`}
+          placeholder={`Was gibt's Neues?`}
           value={content}
           onChange={(e) => setContent(e.target.value)}
           className="min-h-[100px] resize-none"

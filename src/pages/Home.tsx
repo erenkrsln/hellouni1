@@ -1,4 +1,4 @@
-import { useUser } from "@clerk/clerk-react";
+import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -6,8 +6,7 @@ import { Navigation } from "@/components/Navigation";
 import { PostForm } from "@/components/PostForm";
 import { Post } from "@/components/Post";
 import { Loader2 } from "lucide-react";
-import { useSyncClerkProfile } from "@/hooks/useSyncClerkProfile";
-import { useClerkSupabaseProxy } from "@/lib/clerkSupabase";
+import { supabase } from "@/integrations/supabase/client";
 
 interface PostWithProfile {
   id: string;
@@ -33,65 +32,69 @@ interface PostWithProfile {
 }
 
 const Home = () => {
-  const { user, isLoaded } = useUser();
+  const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [posts, setPosts] = useState<PostWithProfile[]>([]);
   const [loading, setLoading] = useState(true);
-  const proxy = useClerkSupabaseProxy();
-  
-  // Sync Clerk profile to Supabase
-  useSyncClerkProfile();
 
   useEffect(() => {
-    if (isLoaded && !user) {
+    if (!authLoading && !user) {
       navigate("/");
     }
-  }, [user, isLoaded, navigate]);
+  }, [user, authLoading, navigate]);
 
   const fetchPosts = async () => {
     try {
-      // Fetch all data in parallel
-      const [postsResult, profilesResult, likesResult, commentsResult] = await Promise.all([
-        proxy.from("posts").select("*", { column: 'created_at', ascending: false }),
-        proxy.from("profiles").select("id, full_name, avatar_url"),
-        proxy.from("post_likes").select("post_id, user_id"),
-        proxy.from("post_comments").select("*"),
-      ]);
+      const { data: postsData, error: postsError } = await supabase
+        .from("posts")
+        .select("*")
+        .order('created_at', { ascending: false });
 
-      if (!postsResult.data || postsResult.data.length === 0) {
+      if (postsError) throw postsError;
+
+      if (!postsData || postsData.length === 0) {
         setPosts([]);
         setLoading(false);
         return;
       }
 
-      // Create maps for quick lookup
-      const profilesMap = new Map();
-      profilesResult.data?.forEach((profile: any) => {
-        profilesMap.set(profile.id, profile);
-      });
+      // Fetch profiles separately
+      const { data: profilesData } = await supabase
+        .from("profiles")
+        .select("id, full_name, avatar_url");
 
-      const likesMap = new Map();
-      likesResult.data?.forEach((like: any) => {
+      // Fetch likes
+      const { data: likesData } = await supabase
+        .from("post_likes")
+        .select("post_id, user_id");
+
+      // Fetch comments with profiles
+      const { data: commentsData } = await supabase
+        .from("post_comments")
+        .select("*");
+
+      const profilesMap = new Map(profilesData?.map(p => [p.id, p]) || []);
+      const likesMap = new Map<string, any[]>();
+      likesData?.forEach(like => {
         if (!likesMap.has(like.post_id)) {
           likesMap.set(like.post_id, []);
         }
-        likesMap.get(like.post_id).push(like);
+        likesMap.get(like.post_id)!.push(like);
       });
 
-      const commentsMap = new Map();
-      commentsResult.data?.forEach((comment: any) => {
+      const commentsMap = new Map<string, any[]>();
+      commentsData?.forEach(comment => {
         if (!commentsMap.has(comment.post_id)) {
           commentsMap.set(comment.post_id, []);
         }
-        commentsMap.get(comment.post_id).push({
+        commentsMap.get(comment.post_id)!.push({
           ...comment,
           profiles: profilesMap.get(comment.user_id) || null,
         });
       });
 
-      // Enrich posts with related data
-      const enrichedPosts = postsResult.data.map((post: any) => ({
+      const enrichedPosts: PostWithProfile[] = postsData.map(post => ({
         ...post,
         profiles: profilesMap.get(post.user_id) || null,
         post_likes: likesMap.get(post.id) || [],
@@ -100,7 +103,6 @@ const Home = () => {
 
       setPosts(enrichedPosts);
     } catch (error: any) {
-      console.error("Error fetching posts:", error);
       toast({
         title: "Fehler beim Laden der Beiträge",
         description: error.message || "Ein Fehler ist aufgetreten",
@@ -125,7 +127,7 @@ const Home = () => {
     fetchPosts();
   };
 
-  if (!isLoaded || !user) {
+  if (authLoading || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin" />

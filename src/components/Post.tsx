@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Heart, MessageCircle, Share2, Trash2, Loader2 } from "lucide-react";
-import { useClerkSupabaseProxy } from "@/lib/clerkSupabase";
+import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
 import { de } from "date-fns/locale";
@@ -57,31 +57,47 @@ const commentSchema = z.object({
 
 export const Post = ({ post, currentUserId, onPostDeleted, onPostUpdated }: PostProps) => {
   const { toast } = useToast();
-  const proxy = useClerkSupabaseProxy();
   const [showComments, setShowComments] = useState(false);
   const [commentText, setCommentText] = useState("");
   const [loading, setLoading] = useState(false);
+  const [optimisticLiked, setOptimisticLiked] = useState(false);
+  const [optimisticLikesCount, setOptimisticLikesCount] = useState(0);
   
-  const isLiked = post.post_likes.some(like => like.user_id === currentUserId);
-  const likesCount = post.post_likes.length;
+  const isLiked = optimisticLiked || post.post_likes.some(like => like.user_id === currentUserId);
+  const likesCount = optimisticLikesCount || post.post_likes.length;
   const commentsCount = post.post_comments.length;
   const isOwnPost = post.user_id === currentUserId;
 
   const handleLike = async () => {
+    // Optimistic update
+    setOptimisticLiked(!isLiked);
+    setOptimisticLikesCount(isLiked ? likesCount - 1 : likesCount + 1);
+
     try {
       if (isLiked) {
-        await proxy.from("post_likes").delete({ 
-          post_id: post.id, 
-          user_id: '$auth' 
-        });
+        const { error } = await supabase
+          .from("post_likes")
+          .delete()
+          .eq("post_id", post.id)
+          .eq("user_id", currentUserId);
+        
+        if (error) throw error;
       } else {
-        await proxy.from("post_likes").insert({ 
-          post_id: post.id 
-        });
+        const { error } = await supabase
+          .from("post_likes")
+          .insert({ post_id: post.id, user_id: currentUserId });
+        
+        if (error) throw error;
       }
+      
+      // Reset optimistic state and refresh
+      setOptimisticLiked(false);
+      setOptimisticLikesCount(0);
       onPostUpdated();
     } catch (error: any) {
-      console.error("Error toggling like:", error);
+      // Revert on error
+      setOptimisticLiked(false);
+      setOptimisticLikesCount(0);
       toast({
         title: "Fehler",
         description: error.message || "Ein Fehler ist aufgetreten",
@@ -95,13 +111,17 @@ export const Post = ({ post, currentUserId, onPostDeleted, onPostUpdated }: Post
     
     setLoading(true);
     try {
-      // Validate input
       const validated = commentSchema.parse({ content: commentText });
       
-      await proxy.from("post_comments").insert({
-        post_id: post.id,
-        content: validated.content,
-      });
+      const { error } = await supabase
+        .from("post_comments")
+        .insert({
+          post_id: post.id,
+          content: validated.content,
+          user_id: currentUserId,
+        });
+      
+      if (error) throw error;
       
       setCommentText("");
       onPostUpdated();
@@ -117,7 +137,6 @@ export const Post = ({ post, currentUserId, onPostDeleted, onPostUpdated }: Post
           variant: "destructive",
         });
       } else {
-        console.error("Error creating comment:", error);
         toast({
           title: "Fehler",
           description: error.message || "Ein Fehler ist aufgetreten",
@@ -131,10 +150,13 @@ export const Post = ({ post, currentUserId, onPostDeleted, onPostUpdated }: Post
 
   const handleDelete = async () => {
     try {
-      await proxy.from("posts").delete({ 
-        id: post.id, 
-        user_id: '$auth' 
-      });
+      const { error } = await supabase
+        .from("posts")
+        .delete()
+        .eq("id", post.id)
+        .eq("user_id", currentUserId);
+      
+      if (error) throw error;
       
       toast({
         title: "Erfolg",
@@ -142,7 +164,6 @@ export const Post = ({ post, currentUserId, onPostDeleted, onPostUpdated }: Post
       });
       onPostDeleted();
     } catch (error: any) {
-      console.error("Error deleting post:", error);
       toast({
         title: "Fehler",
         description: error.message || "Ein Fehler ist aufgetreten",
