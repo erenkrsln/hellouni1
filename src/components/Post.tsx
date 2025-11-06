@@ -62,26 +62,12 @@ export const Post = ({ post, currentUserId, onPostDeleted, onPostUpdated }: Post
   const [commentText, setCommentText] = useState("");
   const [loading, setLoading] = useState(false);
   
-  // Optimistic like state
-  const [optimisticLiked, setOptimisticLiked] = useState<boolean | null>(null);
-  const [optimisticLikesCount, setOptimisticLikesCount] = useState<number | null>(null);
-  
-  const actualIsLiked = post.post_likes.some(like => like.user_id === currentUserId);
-  const actualLikesCount = post.post_likes.length;
-  
-  const isLiked = optimisticLiked !== null ? optimisticLiked : actualIsLiked;
-  const likesCount = optimisticLikesCount !== null ? optimisticLikesCount : actualLikesCount;
+  const isLiked = post.post_likes.some(like => like.user_id === currentUserId);
+  const likesCount = post.post_likes.length;
   const commentsCount = post.post_comments.length;
   const isOwnPost = post.user_id === currentUserId;
 
   const handleLike = async () => {
-    // Optimistic update
-    const newLikedState = !isLiked;
-    const newLikesCount = newLikedState ? likesCount + 1 : likesCount - 1;
-    
-    setOptimisticLiked(newLikedState);
-    setOptimisticLikesCount(newLikesCount);
-    
     try {
       if (isLiked) {
         await proxy.from("post_likes").delete({ 
@@ -93,16 +79,8 @@ export const Post = ({ post, currentUserId, onPostDeleted, onPostUpdated }: Post
           post_id: post.id 
         });
       }
-      
-      // Reset optimistic state and refresh from server
-      setOptimisticLiked(null);
-      setOptimisticLikesCount(null);
       onPostUpdated();
     } catch (error: any) {
-      // Rollback optimistic update on error
-      setOptimisticLiked(null);
-      setOptimisticLikesCount(null);
-      
       console.error("Error toggling like:", error);
       toast({
         title: "Fehler",
