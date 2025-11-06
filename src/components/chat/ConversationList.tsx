@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useClerkSupabaseProxy } from "@/lib/clerkSupabase";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -39,6 +40,7 @@ export const ConversationList = ({
   selectedConversationId 
 }: ConversationListProps) => {
   const { toast } = useToast();
+  const proxy = useClerkSupabaseProxy();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
@@ -52,14 +54,16 @@ export const ConversationList = ({
   const fetchConversations = async () => {
     try {
       // Get all conversations for the current user
-      const { data: userConvs, error: convsError } = await supabase
-        .from("conversation_participants")
-        .select("conversation_id")
-        .eq("user_id", currentUserId);
+      const userConvs = await proxy.from("conversation_participants")
+        .select("conversation_id", undefined, { user_id: currentUserId });
 
-      if (convsError) throw convsError;
+      if (!userConvs.data) {
+        setConversations([]);
+        setLoading(false);
+        return;
+      }
 
-      const conversationIds = userConvs.map(c => c.conversation_id);
+      const conversationIds = userConvs.data.map((c: any) => c.conversation_id);
 
       if (conversationIds.length === 0) {
         setConversations([]);
@@ -67,52 +71,43 @@ export const ConversationList = ({
         return;
       }
 
-      // Get conversation details
-      const { data: convData, error: convError } = await supabase
-        .from("conversations")
-        .select("id, name, is_group")
-        .in("id", conversationIds);
+      // Get conversation details and participants
+      const [convResult, allParticipantsResult, profilesResult] = await Promise.all([
+        proxy.from("conversations").select("id, name, is_group"),
+        proxy.from("conversation_participants").select("conversation_id, user_id"),
+        proxy.from("profiles").select("id, full_name, email"),
+      ]);
 
-      if (convError) throw convError;
+      const convData = convResult.data?.filter((c: any) => conversationIds.includes(c.id)) || [];
+      const allParticipants = allParticipantsResult.data || [];
+      const allProfiles = profilesResult.data || [];
 
-      // Get all participants for these conversations
-      const conversationsWithParticipants = await Promise.all(
-        (convData || []).map(async (conv) => {
-          const { data: participantData } = await supabase
-            .from("conversation_participants")
-            .select("user_id")
-            .eq("conversation_id", conv.id)
-            .neq("user_id", currentUserId);
+      // Build conversations with participants
+      const conversationsWithParticipants = convData.map((conv: any) => {
+        const convParticipants = allParticipants
+          .filter((p: any) => p.conversation_id === conv.id && p.user_id !== currentUserId)
+          .map((p: any) => p.user_id);
 
-          const userIds = participantData?.map(p => p.user_id) || [];
-          
-          let participants: { id: string; full_name: string | null; email: string | null }[] = [];
-          
-          if (userIds.length > 0) {
-            const { data: profileData } = await supabase
-              .from("profiles")
-              .select("id, full_name, email")
-              .in("id", userIds);
-              
-            participants = profileData?.map(p => ({
-              id: p.id,
-              full_name: p.full_name,
-              email: p.email,
-            })) || [];
-          }
+        const participants = allProfiles
+          .filter((profile: any) => convParticipants.includes(profile.id))
+          .map((profile: any) => ({
+            id: profile.id,
+            full_name: profile.full_name,
+            email: profile.email,
+          }));
 
-          return {
-            ...conv,
-            participants,
-          };
-        })
-      );
+        return {
+          ...conv,
+          participants,
+        };
+      });
 
       setConversations(conversationsWithParticipants);
     } catch (error: any) {
+      console.error("Error fetching conversations:", error);
       toast({
         title: "Fehler",
-        description: error.message,
+        description: error.message || "Fehler beim Laden der Konversationen",
         variant: "destructive",
       });
     } finally {
@@ -131,27 +126,26 @@ export const ConversationList = ({
       // For 1-on-1, get or create conversation
       const otherUser = conv.participants[0];
       if (otherUser) {
-        const { data, error } = await supabase
-          .rpc('get_or_create_conversation', { 
+        try {
+          const result = await proxy.rpc('get_or_create_conversation', { 
             current_user_id: currentUserId,
             other_user_id: otherUser.id 
           });
 
-        if (error) {
+          onConversationSelect({
+            id: result.data,
+            name: otherUser.full_name,
+            isGroup: false,
+            otherUserId: otherUser.id,
+          });
+        } catch (error: any) {
+          console.error("Error getting conversation:", error);
           toast({
             title: "Fehler",
-            description: error.message,
+            description: error.message || "Fehler beim Öffnen der Konversation",
             variant: "destructive",
           });
-          return;
         }
-
-        onConversationSelect({
-          id: data,
-          name: otherUser.full_name,
-          isGroup: false,
-          otherUserId: otherUser.id,
-        });
       }
     }
   };

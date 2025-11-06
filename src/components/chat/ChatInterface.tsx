@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useClerkSupabaseProxy } from "@/lib/clerkSupabase";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -47,6 +48,7 @@ export const ChatInterface = ({
   onBack
 }: ChatInterfaceProps) => {
   const { toast } = useToast();
+  const proxy = useClerkSupabaseProxy();
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
@@ -177,23 +179,18 @@ export const ChatInterface = ({
 
   const fetchParticipants = async () => {
     try {
-      const { data: participantData, error } = await supabase
-        .from("conversation_participants")
-        .select("user_id")
-        .eq("conversation_id", conversationId);
+      const participantData = await proxy.from("conversation_participants")
+        .select("user_id", undefined, { conversation_id: conversationId });
 
-      if (error) throw error;
+      if (!participantData.data) return;
       
-      const userIds = participantData?.map(p => p.user_id) || [];
+      const userIds = participantData.data.map((p: any) => p.user_id);
       
       if (userIds.length > 0) {
-        const { data: profileData } = await supabase
-          .from("profiles")
-          .select("id, full_name")
-          .in("id", userIds);
+        const profileData = await proxy.from("profiles").select("id, full_name");
           
         setParticipants(
-          profileData?.map(p => ({
+          profileData.data?.filter((p: any) => userIds.includes(p.id)).map((p: any) => ({
             id: p.id,
             full_name: p.full_name,
           })) || []
@@ -206,48 +203,41 @@ export const ChatInterface = ({
 
   const fetchMessages = async () => {
     try {
-      const { data: messagesData, error: messagesError } = await supabase
-        .from("messages")
-        .select("*")
-        .eq("conversation_id", conversationId)
-        .order("created_at", { ascending: true });
+      const messagesData = await proxy.from("messages")
+        .select("*", { column: 'created_at', ascending: true }, { conversation_id: conversationId });
 
-      if (messagesError) throw messagesError;
-
-      if (!messagesData || messagesData.length === 0) {
+      if (!messagesData.data || messagesData.data.length === 0) {
         setMessages([]);
         setLoading(false);
         return;
       }
 
       // Batch fetch all sender profiles
-      const senderIds = [...new Set(messagesData.map(msg => msg.sender_id))];
-      const { data: profilesData } = await supabase
-        .from("profiles")
-        .select("id, full_name")
-        .in("id", senderIds);
-
+      const senderIds = [...new Set(messagesData.data.map((msg: any) => msg.sender_id))];
+      const profilesResult = await proxy.from("profiles").select("id, full_name");
+      
       const profilesMap = new Map(
-        (profilesData || []).map(p => [p.id, p])
+        (profilesResult.data || [])
+          .filter((p: any) => senderIds.includes(p.id))
+          .map((p: any) => [p.id, p])
       );
 
       // Batch fetch all read receipts
-      const messageIds = messagesData.map(msg => msg.id);
-      const { data: readsData } = await supabase
-        .from("message_reads")
-        .select("message_id, user_id")
-        .in("message_id", messageIds);
+      const messageIds = messagesData.data.map((msg: any) => msg.id);
+      const readsResult = await proxy.from("message_reads").select("message_id, user_id");
 
       const readsMap = new Map<string, string[]>();
-      (readsData || []).forEach(read => {
-        if (!readsMap.has(read.message_id)) {
-          readsMap.set(read.message_id, []);
-        }
-        readsMap.get(read.message_id)!.push(read.user_id);
-      });
+      (readsResult.data || [])
+        .filter((read: any) => messageIds.includes(read.message_id))
+        .forEach((read: any) => {
+          if (!readsMap.has(read.message_id)) {
+            readsMap.set(read.message_id, []);
+          }
+          readsMap.get(read.message_id)!.push(read.user_id);
+        });
 
       // Combine data
-      const messagesWithDetails = messagesData.map(msg => ({
+      const messagesWithDetails = messagesData.data.map((msg: any) => ({
         ...msg,
         sender_profile: profilesMap.get(msg.sender_id) || null,
         read_by: readsMap.get(msg.id) || [],
@@ -257,19 +247,17 @@ export const ChatInterface = ({
 
       // Mark unread messages as read
       const unreadMessages = messagesWithDetails.filter(
-        msg => msg.sender_id !== currentUserId && !msg.read_by.includes(currentUserId)
+        (msg: any) => msg.sender_id !== currentUserId && !msg.read_by.includes(currentUserId)
       );
 
       for (const msg of unreadMessages) {
-        const { error: readError } = await supabase.rpc('mark_message_read', { 
+        await proxy.rpc('mark_message_read', { 
           msg_id: msg.id,
           reader_user_id: currentUserId 
         });
-        if (readError) {
-          console.error('Error marking message as read:', readError);
-        }
       }
     } catch (error: any) {
+      console.error("Error fetching messages:", error);
       toast({
         title: "Fehler",
         description: error.message,
@@ -307,20 +295,21 @@ export const ChatInterface = ({
       setMessages((current) => [...current, tempMessage]);
       setNewMessage("");
       
-      const { data, error } = await supabase.from("messages").insert({
+      const data = await proxy.from("messages").insert({
         conversation_id: conversationId,
         sender_id: currentUserId,
         content: validated.content,
-      }).select().single();
+      });
 
-      if (error) throw error;
+      if (!data.data) throw new Error("Failed to send message");
       
       // Replace temp message with real one
-      if (data) {
+      if (data.data) {
+        const realMessage = Array.isArray(data.data) ? data.data[0] : data.data;
         setMessages((current) => 
           current.map((msg) => 
             msg.id === tempMessage.id 
-              ? { ...data, sender_profile: tempMessage.sender_profile, read_by: tempMessage.read_by }
+              ? { ...realMessage, sender_profile: tempMessage.sender_profile, read_by: tempMessage.read_by }
               : msg
           )
         );
@@ -330,7 +319,7 @@ export const ChatInterface = ({
           convChannelRef.current?.send({
             type: 'broadcast',
             event: 'message:new',
-            payload: data,
+            payload: realMessage,
           });
         } catch (e) {
           console.log('Broadcast send failed:', e);
