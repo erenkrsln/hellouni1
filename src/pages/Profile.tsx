@@ -5,7 +5,7 @@ import { Navigation } from "@/components/Navigation";
 import { Post } from "@/components/Post";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Calendar, ArrowLeft } from "lucide-react";
+import { Loader2, Calendar, ArrowLeft, UserPlus, UserMinus } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,12 @@ interface Profile {
   full_name: string | null;
   avatar_url: string | null;
   created_at: string;
+}
+
+interface FollowStats {
+  followers: number;
+  following: number;
+  isFollowing: boolean;
 }
 
 interface PostWithProfile {
@@ -54,6 +60,100 @@ const Profile = () => {
   const [posts, setPosts] = useState<PostWithProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [followStats, setFollowStats] = useState<FollowStats>({ followers: 0, following: 0, isFollowing: false });
+  const [followLoading, setFollowLoading] = useState(false);
+
+  const fetchFollowStats = async (profileId: string) => {
+    if (!user) return;
+
+    try {
+      // Count followers
+      const { count: followersCount } = await supabase
+        .from("user_follows")
+        .select("*", { count: "exact", head: true })
+        .eq("following_id", profileId);
+
+      // Count following
+      const { count: followingCount } = await supabase
+        .from("user_follows")
+        .select("*", { count: "exact", head: true })
+        .eq("follower_id", profileId);
+
+      // Check if current user follows this profile
+      const { data: followData } = await supabase
+        .from("user_follows")
+        .select("id")
+        .eq("follower_id", user.id)
+        .eq("following_id", profileId)
+        .maybeSingle();
+
+      setFollowStats({
+        followers: followersCount || 0,
+        following: followingCount || 0,
+        isFollowing: !!followData,
+      });
+    } catch (error) {
+      console.error("Error fetching follow stats:", error);
+    }
+  };
+
+  const handleFollowToggle = async () => {
+    if (!user || !profile) return;
+
+    setFollowLoading(true);
+    try {
+      if (followStats.isFollowing) {
+        // Unfollow
+        const { error } = await supabase
+          .from("user_follows")
+          .delete()
+          .eq("follower_id", user.id)
+          .eq("following_id", profile.id);
+
+        if (error) throw error;
+
+        setFollowStats(prev => ({
+          ...prev,
+          followers: prev.followers - 1,
+          isFollowing: false,
+        }));
+
+        toast({
+          title: "Entfolgt",
+          description: `Du folgst @${profile.username} nicht mehr`,
+        });
+      } else {
+        // Follow
+        const { error } = await supabase
+          .from("user_follows")
+          .insert({
+            follower_id: user.id,
+            following_id: profile.id,
+          });
+
+        if (error) throw error;
+
+        setFollowStats(prev => ({
+          ...prev,
+          followers: prev.followers + 1,
+          isFollowing: true,
+        }));
+
+        toast({
+          title: "Gefolgt",
+          description: `Du folgst jetzt @${profile.username}`,
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Fehler",
+        description: error.message || "Ein Fehler ist aufgetreten",
+        variant: "destructive",
+      });
+    } finally {
+      setFollowLoading(false);
+    }
+  };
 
   useEffect(() => {
     const fetchProfileAndPosts = async () => {
@@ -76,6 +176,9 @@ const Profile = () => {
         }
 
         setProfile(profileData);
+
+        // Fetch follow stats
+        await fetchFollowStats(profileData.id);
 
         // Fetch user's posts
         const { data: postsData, error: postsError } = await supabase
@@ -233,6 +336,19 @@ const Profile = () => {
               <div className="flex-1">
                 <h1 className="text-2xl font-bold">{profile.full_name || "Unbekannt"}</h1>
                 <p className="text-muted-foreground">@{profile.username || "unbekannt"}</p>
+                
+                {/* Follow Stats */}
+                <div className="flex items-center gap-4 mt-3 text-sm">
+                  <div>
+                    <span className="font-semibold">{followStats.following}</span>
+                    <span className="text-muted-foreground ml-1">Folge ich</span>
+                  </div>
+                  <div>
+                    <span className="font-semibold">{followStats.followers}</span>
+                    <span className="text-muted-foreground ml-1">Follower</span>
+                  </div>
+                </div>
+
                 <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
                   <Calendar className="h-4 w-4" />
                   <span>
@@ -240,6 +356,30 @@ const Profile = () => {
                   </span>
                 </div>
               </div>
+
+              {/* Follow Button */}
+              {!isOwnProfile && (
+                <Button 
+                  onClick={handleFollowToggle}
+                  disabled={followLoading}
+                  variant={followStats.isFollowing ? "outline" : "default"}
+                  className="ml-auto"
+                >
+                  {followLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : followStats.isFollowing ? (
+                    <>
+                      <UserMinus className="h-4 w-4 mr-2" />
+                      Entfolgen
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus className="h-4 w-4 mr-2" />
+                      Folgen
+                    </>
+                  )}
+                </Button>
+              )}
             </div>
           </CardHeader>
         </Card>
