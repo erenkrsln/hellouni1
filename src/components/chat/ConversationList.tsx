@@ -126,13 +126,14 @@ export const ConversationList = ({
       const otherUser = conv.participants[0];
       if (otherUser) {
         try {
-          const result = await proxy.rpc('get_or_create_conversation', { 
-            current_user_id: currentUserId,
+          const { data: conversationId, error } = await supabase.rpc('get_or_create_conversation', { 
             other_user_id: otherUser.id 
           });
 
+          if (error) throw error;
+
           onConversationSelect({
-            id: result.data,
+            id: conversationId,
             name: otherUser.full_name,
             isGroup: false,
             otherUserId: otherUser.id,
