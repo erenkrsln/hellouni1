@@ -41,12 +41,13 @@ export const useClerkSupabaseProxy = () => {
 
   return {
     from: (table: string) => ({
-      select: async (columns = '*', order?: { column: string; ascending?: boolean }) => {
+      select: async (columns = '*', order?: { column: string; ascending?: boolean }, filters?: Record<string, any>) => {
         const result = await executeQuery({ 
           operation: 'select', 
           table, 
           select: columns,
-          order 
+          order,
+          filters 
         });
         return { data: result };
       },

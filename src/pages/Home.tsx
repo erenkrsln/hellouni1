@@ -51,17 +51,54 @@ const Home = () => {
 
   const fetchPosts = async () => {
     try {
-      const postsResult = await proxy.from("posts").select(
-        "*, profiles!posts_user_id_fkey(full_name, avatar_url), post_likes(user_id), post_comments(id, content, created_at, user_id, profiles!post_comments_user_id_fkey(full_name, avatar_url))",
-        { column: 'created_at', ascending: false }
-      );
+      // Fetch all data in parallel
+      const [postsResult, profilesResult, likesResult, commentsResult] = await Promise.all([
+        proxy.from("posts").select("*", { column: 'created_at', ascending: false }),
+        proxy.from("profiles").select("id, full_name, avatar_url"),
+        proxy.from("post_likes").select("post_id, user_id"),
+        proxy.from("post_comments").select("*"),
+      ]);
 
-      if (!postsResult.data) {
+      if (!postsResult.data || postsResult.data.length === 0) {
         setPosts([]);
+        setLoading(false);
         return;
       }
 
-      setPosts(postsResult.data);
+      // Create maps for quick lookup
+      const profilesMap = new Map();
+      profilesResult.data?.forEach((profile: any) => {
+        profilesMap.set(profile.id, profile);
+      });
+
+      const likesMap = new Map();
+      likesResult.data?.forEach((like: any) => {
+        if (!likesMap.has(like.post_id)) {
+          likesMap.set(like.post_id, []);
+        }
+        likesMap.get(like.post_id).push(like);
+      });
+
+      const commentsMap = new Map();
+      commentsResult.data?.forEach((comment: any) => {
+        if (!commentsMap.has(comment.post_id)) {
+          commentsMap.set(comment.post_id, []);
+        }
+        commentsMap.get(comment.post_id).push({
+          ...comment,
+          profiles: profilesMap.get(comment.user_id) || null,
+        });
+      });
+
+      // Enrich posts with related data
+      const enrichedPosts = postsResult.data.map((post: any) => ({
+        ...post,
+        profiles: profilesMap.get(post.user_id) || null,
+        post_likes: likesMap.get(post.id) || [],
+        post_comments: commentsMap.get(post.id) || [],
+      }));
+
+      setPosts(enrichedPosts);
     } catch (error: any) {
       console.error("Error fetching posts:", error);
       toast({
