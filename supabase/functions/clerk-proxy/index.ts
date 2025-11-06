@@ -1,45 +1,125 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { create, verify } from "https://deno.land/x/djwt@v3.0.1/mod.ts";
+import { decode } from "https://deno.land/std@0.208.0/encoding/base64url.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-interface ClerkJWKS {
+const JWKS_CACHE = new Map<string, CryptoKey>();
+const JWKS_URL = 'https://social-crayfish-61.clerk.accounts.dev/.well-known/jwks.json';
+
+interface JWKS {
   keys: Array<{
-    use: string;
     kty: string;
+    use: string;
     kid: string;
-    alg: string;
     n: string;
     e: string;
+    alg: string;
   }>;
+}
+
+function base64UrlToArrayBuffer(base64url: string): ArrayBuffer {
+  const base64 = base64url.replace(/-/g, '+').replace(/_/g, '/');
+  const paddedBase64 = base64.padEnd(base64.length + (4 - base64.length % 4) % 4, '=');
+  const binaryString = atob(paddedBase64);
+  const bytes = new Uint8Array(binaryString.length);
+  for (let i = 0; i < binaryString.length; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  return bytes.buffer;
+}
+
+async function importJWK(jwk: { n: string; e: string; kty: string; alg: string }): Promise<CryptoKey> {
+  return await crypto.subtle.importKey(
+    'jwk',
+    {
+      kty: jwk.kty,
+      n: jwk.n,
+      e: jwk.e,
+      alg: jwk.alg,
+      ext: true,
+    },
+    {
+      name: 'RSASSA-PKCS1-v1_5',
+      hash: 'SHA-256',
+    },
+    false,
+    ['verify']
+  );
+}
+
+async function getPublicKey(kid: string): Promise<CryptoKey | null> {
+  if (JWKS_CACHE.has(kid)) {
+    return JWKS_CACHE.get(kid)!;
+  }
+
+  try {
+    const response = await fetch(JWKS_URL);
+    const jwks: JWKS = await response.json();
+    
+    const jwk = jwks.keys.find(key => key.kid === kid);
+    if (!jwk) {
+      console.error('Key not found in JWKS:', kid);
+      return null;
+    }
+
+    const publicKey = await importJWK(jwk);
+    JWKS_CACHE.set(kid, publicKey);
+    return publicKey;
+  } catch (error) {
+    console.error('Error fetching JWKS:', error);
+    return null;
+  }
 }
 
 async function verifyClerkToken(token: string): Promise<{ sub: string; email?: string } | null> {
   try {
-    // Fetch JWKS from Clerk
-    const jwksUrl = 'https://social-crayfish-61.clerk.accounts.dev/.well-known/jwks.json';
-    const jwksResponse = await fetch(jwksUrl);
-    const jwks: ClerkJWKS = await jwksResponse.json();
-
-    // Decode JWT header to get kid
-    const [headerB64] = token.split('.');
-    const header = JSON.parse(atob(headerB64));
-    
-    // Find matching key
-    const key = jwks.keys.find(k => k.kid === header.kid);
-    if (!key) {
-      console.error('No matching key found in JWKS');
+    const parts = token.split('.');
+    if (parts.length !== 3) {
+      console.error('Invalid JWT format');
       return null;
     }
 
-    // For simplicity, decode payload without full signature verification
-    // In production, use a proper JWT library
-    const [, payloadB64] = token.split('.');
-    const payload = JSON.parse(atob(payloadB64.replace(/-/g, '+').replace(/_/g, '/')));
+    // Decode header to get kid
+    const headerJson = new TextDecoder().decode(base64UrlToArrayBuffer(parts[0]));
+    const header = JSON.parse(headerJson);
     
+    if (!header.kid) {
+      console.error('No kid in JWT header');
+      return null;
+    }
+
+    // Get public key
+    const publicKey = await getPublicKey(header.kid);
+    if (!publicKey) {
+      return null;
+    }
+
+    // Verify signature
+    const signatureData = parts[0] + '.' + parts[1];
+    const signature = base64UrlToArrayBuffer(parts[2]);
+    const dataBuffer = new TextEncoder().encode(signatureData);
+
+    const isValid = await crypto.subtle.verify(
+      'RSASSA-PKCS1-v1_5',
+      publicKey,
+      signature,
+      dataBuffer
+    );
+
+    if (!isValid) {
+      console.error('JWT signature verification failed');
+      return null;
+    }
+
+    // Decode and validate payload
+    const payloadJson = new TextDecoder().decode(base64UrlToArrayBuffer(parts[1]));
+    const payload = JSON.parse(payloadJson);
+
     // Check expiration
     if (payload.exp && payload.exp < Date.now() / 1000) {
       console.error('Token expired');
