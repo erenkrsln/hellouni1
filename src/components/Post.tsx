@@ -251,9 +251,8 @@ export const Post = ({ post, currentUserId, onPostDeleted, onPostUpdated }: Post
           variant="ghost"
           size="sm"
           onClick={handleLike}
-          className={isLiked ? "text-red-500" : ""}
         >
-          <Heart className={`h-4 w-4 mr-1 ${isLiked ? "fill-current" : ""}`} />
+          <Heart className={`h-4 w-4 mr-1 ${isLiked ? "fill-red-500 text-red-500" : "text-foreground"}`} />
           {likesCount > 0 && <span className="text-xs">{likesCount}</span>}
         </Button>
 
