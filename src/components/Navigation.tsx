@@ -104,10 +104,10 @@ export const Navigation = () => {
             </NavLink>
 
             <NavLink to="/notifications" className="flex flex-col items-center gap-1 p-2 rounded-lg transition-colors hover:bg-accent">
-              <div className="flex items-center gap-1.5">
+              <div className="relative">
                 <Bell className="h-5 w-5 sm:h-6 sm:w-6" />
                 {unreadCount > 0 && (
-                  <Badge variant="destructive" className="h-5 min-w-5 px-1.5 flex items-center justify-center text-xs">
+                  <Badge variant="destructive" className="absolute -top-2 -right-2 h-5 min-w-5 px-1 flex items-center justify-center text-xs">
                     {unreadCount > 9 ? "9+" : unreadCount}
                   </Badge>
                 )}
