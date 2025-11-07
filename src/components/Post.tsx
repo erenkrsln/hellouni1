@@ -99,8 +99,7 @@ export const Post = ({ post, currentUserId, onPostDeleted, onPostUpdated }: Post
         if (error) throw error;
       }
       
-      // Success - reset optimistic state and sync with DB
-      setOptimisticLikes(null);
+      // Success - refresh data (optimistic state will be replaced by new props)
       onPostUpdated();
     } catch (error: any) {
       // Revert optimistic update on error
