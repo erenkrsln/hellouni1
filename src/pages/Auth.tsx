@@ -11,6 +11,7 @@ import { Mail, Lock } from 'lucide-react';
 
 const Auth = () => {
   const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [magicLinkSent, setMagicLinkSent] = useState(false);
@@ -56,9 +57,16 @@ const Auth = () => {
   const handlePasswordAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!email || !password) {
-      toast.error('Bitte fülle alle Felder aus');
-      return;
+    if (isSignUp) {
+      if (!email || !username || !password) {
+        toast.error('Bitte fülle alle Felder aus');
+        return;
+      }
+    } else {
+      if (!username || !password) {
+        toast.error('Bitte fülle alle Felder aus');
+        return;
+      }
     }
 
     setLoading(true);
@@ -70,6 +78,9 @@ const Auth = () => {
           password,
           options: {
             emailRedirectTo: `${window.location.origin}/home`,
+            data: {
+              username: username,
+            }
           },
         });
 
@@ -77,9 +88,24 @@ const Auth = () => {
         toast.success('Account erstellt! Du kannst dich jetzt anmelden.');
         setIsSignUp(false);
         setPassword('');
+        setEmail('');
+        setUsername('');
       } else {
+        // Lookup email by username
+        const { data: profile, error: lookupError } = await supabase
+          .from('profiles')
+          .select('email')
+          .eq('username', username)
+          .single();
+
+        if (lookupError || !profile) {
+          toast.error('Benutzername nicht gefunden');
+          setLoading(false);
+          return;
+        }
+
         const { error } = await supabase.auth.signInWithPassword({
-          email,
+          email: profile.email,
           password,
         });
 
@@ -167,12 +193,24 @@ const Auth = () => {
             
             <TabsContent value="password">
               <form onSubmit={handlePasswordAuth} className="space-y-4">
+                {isSignUp && (
+                  <div className="space-y-2">
+                    <Input
+                      type="email"
+                      placeholder="E-Mail"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      disabled={loading}
+                      required
+                    />
+                  </div>
+                )}
                 <div className="space-y-2">
                   <Input
-                    type="email"
-                    placeholder="E-Mail"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    type="text"
+                    placeholder="Benutzername"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
                     disabled={loading}
                     required
                   />
