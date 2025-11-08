@@ -96,7 +96,7 @@ const Auth = () => {
           .from('profiles')
           .select('email')
           .eq('username', username)
-          .single();
+          .maybeSingle();
 
         if (lookupError || !profile) {
           toast.error('Benutzername nicht gefunden');
