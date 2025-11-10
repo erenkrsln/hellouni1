@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Navigation } from "@/components/Navigation";
+import { BottomNavigation } from "@/components/BottomNavigation";
 import { PostForm } from "@/components/PostForm";
 import { Post } from "@/components/Post";
 import { Loader2 } from "lucide-react";
@@ -165,7 +166,7 @@ const Home = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-16 md:pb-0">
       <Navigation />
       
       <main className="container max-w-2xl mx-auto px-4 py-6 space-y-6">
@@ -193,6 +194,7 @@ const Home = () => {
           </div>
         )}
       </main>
+      <BottomNavigation />
     </div>
   );
 };

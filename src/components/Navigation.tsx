@@ -156,65 +156,15 @@ export const Navigation = () => {
             </DropdownMenu>
           </div>
 
-          {/* Mobile Navigation */}
+          {/* Mobile Navigation - Only Profile Avatar */}
           <div className="flex md:hidden items-center gap-2">
-            {/* Mobile Dropdown Menu */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <MoreVertical className="h-5 w-5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>Menü</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <NavLink to="/home" className="flex items-center cursor-pointer">
-                    <Home className="mr-2 h-4 w-4" />
-                    <span>Startseite</span>
-                  </NavLink>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <NavLink to="/messages" className="flex items-center cursor-pointer">
-                    <MessageCircle className="mr-2 h-4 w-4" />
-                    <span>Nachrichten</span>
-                  </NavLink>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <NavLink to="/notifications" className="flex items-center cursor-pointer">
-                    <Bell className="mr-2 h-4 w-4" />
-                    <span>Benachrichtigungen</span>
-                    {unreadCount > 0 && (
-                      <Badge variant="destructive" className="ml-auto h-5 w-5 flex items-center justify-center p-0 text-xs">
-                        {unreadCount > 9 ? "9+" : unreadCount}
-                      </Badge>
-                    )}
-                  </NavLink>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem>
-                  <User className="mr-2 h-4 w-4" />
-                  <span>Profil</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Settings className="mr-2 h-4 w-4" />
-                  <span>Einstellungen</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleSignOut}>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>Abmelden</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
-
-        {/* Mobile Search Bar */}
-        <div className="md:hidden pb-3">
-          <div className="relative w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input type="search" placeholder="Suchen..." className="pl-10 w-full" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+            <Button variant="ghost" size="icon" className="rounded-full" onClick={() => navigate('/profile/' + user?.email?.split('@')[0])}>
+              <Avatar>
+                <AvatarFallback>
+                  {user?.email?.[0]?.toUpperCase() || "U"}
+                </AvatarFallback>
+              </Avatar>
+            </Button>
           </div>
         </div>
       </div>

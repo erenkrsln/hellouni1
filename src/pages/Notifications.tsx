@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigation } from "@/components/Navigation";
+import { BottomNavigation } from "@/components/BottomNavigation";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Heart, MessageCircle, UserPlus, Check } from "lucide-react";
@@ -222,7 +223,7 @@ const Notifications = () => {
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-16 md:pb-0">
       <Navigation />
       
       <main className="container max-w-2xl mx-auto px-4 py-6">
@@ -297,6 +298,7 @@ const Notifications = () => {
           </div>
         )}
       </main>
+      <BottomNavigation />
     </div>
   );
 };
