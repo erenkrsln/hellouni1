@@ -6,14 +6,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Mail, KeyRound } from 'lucide-react';
-import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
+import { Mail } from 'lucide-react';
 
 const Auth = () => {
   const [email, setEmail] = useState('');
-  const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
-  const [otpSent, setOtpSent] = useState(false);
+  const [magicLinkSent, setMagicLinkSent] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -23,7 +21,7 @@ const Auth = () => {
     }
   }, [user, navigate]);
 
-  const handleSendOtp = async (e: React.FormEvent) => {
+  const handleMagicLink = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!email) {
@@ -37,14 +35,14 @@ const Auth = () => {
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          shouldCreateUser: true,
+          emailRedirectTo: `${window.location.origin}/home`,
         },
       });
 
       if (error) throw error;
 
-      setOtpSent(true);
-      toast.success('Verifizierungscode wurde gesendet! Überprüfe deine E-Mails.');
+      setMagicLinkSent(true);
+      toast.success('Magic Link wurde gesendet! Überprüfe deine E-Mails.');
     } catch (error: any) {
       toast.error(error.message || 'Ein Fehler ist aufgetreten');
     } finally {
@@ -52,87 +50,28 @@ const Auth = () => {
     }
   };
 
-  const handleVerifyOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!otp || otp.length !== 6) {
-      toast.error('Bitte gib einen 6-stelligen Code ein');
-      return;
-    }
 
-    setLoading(true);
-
-    try {
-      const { error } = await supabase.auth.verifyOtp({
-        email,
-        token: otp,
-        type: 'email',
-      });
-
-      if (error) throw error;
-
-      toast.success('Erfolgreich angemeldet!');
-      navigate('/home');
-    } catch (error: any) {
-      toast.error(error.message || 'Ungültiger Code. Bitte versuche es erneut.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-
-  if (otpSent) {
+  if (magicLinkSent) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
             <div className="mx-auto w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-              <KeyRound className="h-6 w-6 text-primary" />
+              <Mail className="h-6 w-6 text-primary" />
             </div>
-            <CardTitle>Code eingeben</CardTitle>
+            <CardTitle>Überprüfe deine E-Mails</CardTitle>
             <CardDescription>
-              Wir haben dir einen 6-stelligen Code an <strong>{email}</strong> gesendet.
+              Wir haben dir einen Magic Link an <strong>{email}</strong> gesendet. Klicke auf den Link, um dich anzumelden.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleVerifyOtp} className="space-y-4">
-              <div className="flex justify-center">
-                <InputOTP
-                  maxLength={6}
-                  value={otp}
-                  onChange={(value) => setOtp(value)}
-                  disabled={loading}
-                >
-                  <InputOTPGroup>
-                    <InputOTPSlot index={0} />
-                    <InputOTPSlot index={1} />
-                    <InputOTPSlot index={2} />
-                    <InputOTPSlot index={3} />
-                    <InputOTPSlot index={4} />
-                    <InputOTPSlot index={5} />
-                  </InputOTPGroup>
-                </InputOTP>
-              </div>
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={loading || otp.length !== 6}
-              >
-                {loading ? 'Wird überprüft...' : 'Code bestätigen'}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full"
-                onClick={() => {
-                  setOtpSent(false);
-                  setOtp('');
-                }}
-                disabled={loading}
-              >
-                Andere E-Mail verwenden
-              </Button>
-            </form>
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => setMagicLinkSent(false)}
+            >
+              Andere E-Mail verwenden
+            </Button>
           </CardContent>
         </Card>
       </div>
@@ -152,7 +91,7 @@ const Auth = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSendOtp} className="space-y-4">
+          <form onSubmit={handleMagicLink} className="space-y-4">
             <div className="space-y-2">
               <Input
                 type="email"
@@ -168,7 +107,7 @@ const Auth = () => {
               className="w-full"
               disabled={loading}
             >
-              {loading ? 'Wird gesendet...' : 'Code anfordern'}
+              {loading ? 'Wird gesendet...' : 'Magic Link senden'}
             </Button>
           </form>
         </CardContent>
