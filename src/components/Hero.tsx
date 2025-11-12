@@ -68,10 +68,11 @@ export const Hero = () => {
           <div className="flex items-center gap-2">
             <img src={HelloUniLogo} alt="HelloUni" className="h-16 w-auto" />
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
             <Button 
-              size="lg" 
-              className="font-semibold shadow-warm"
+              variant="ghost" 
+              size="sm" 
+              className="font-medium text-xs sm:text-sm px-2 sm:px-4"
               onClick={() => navigate("/auth")}
             >
               Anmelden
