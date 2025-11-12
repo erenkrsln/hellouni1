@@ -13,6 +13,7 @@ const Auth = () => {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -68,8 +69,13 @@ const Auth = () => {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!username || !email || !password) {
+    if (!username || !email || !password || !confirmPassword) {
       toast.error('Bitte fülle alle Felder aus');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      toast.error('Passwörter stimmen nicht überein');
       return;
     }
 
@@ -179,6 +185,19 @@ const Auth = () => {
                 minLength={6}
               />
             </div>
+            {!isLogin && (
+              <div className="space-y-2">
+                <Input
+                  type="password"
+                  placeholder="Passwort bestätigen"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  disabled={loading}
+                  required
+                  minLength={6}
+                />
+              </div>
+            )}
             <Button
               type="submit"
               className="w-full"
@@ -198,6 +217,7 @@ const Auth = () => {
                 setUsername('');
                 setEmail('');
                 setPassword('');
+                setConfirmPassword('');
               }}
               disabled={loading}
             >
