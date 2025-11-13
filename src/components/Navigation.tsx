@@ -152,11 +152,11 @@ export const Navigation = () => {
               <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuLabel>Mein Account</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate(`/profile/${userProfile?.username || user?.email?.split('@')[0]}`)}>
                   <User className="mr-2 h-4 w-4" />
                   <span>Profil</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate('/settings')}>
                   <Settings className="mr-2 h-4 w-4" />
                   <span>Einstellungen</span>
                 </DropdownMenuItem>
@@ -169,15 +169,38 @@ export const Navigation = () => {
             </DropdownMenu>
           </div>
 
-          {/* Mobile Navigation - Only Profile Avatar */}
+          {/* Mobile Navigation - Profile Avatar with Dropdown */}
           <div className="flex md:hidden items-center gap-2">
-            <Button variant="ghost" size="icon" className="rounded-full" onClick={() => navigate('/profile/' + user?.email?.split('@')[0])}>
-              <Avatar>
-                <AvatarFallback>
-                  {user?.email?.[0]?.toUpperCase() || "U"}
-                </AvatarFallback>
-              </Avatar>
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="rounded-full">
+                  <Avatar>
+                    <AvatarFallback>
+                      {userProfile?.full_name?.[0]?.toUpperCase() || 
+                       userProfile?.username?.[0]?.toUpperCase() || 
+                       user?.email?.[0]?.toUpperCase() || "U"}
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>Mein Account</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => navigate(`/profile/${userProfile?.username || user?.email?.split('@')[0]}`)}>
+                  <User className="mr-2 h-4 w-4" />
+                  <span>Profil</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate('/settings')}>
+                  <Settings className="mr-2 h-4 w-4" />
+                  <span>Einstellungen</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleSignOut}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Abmelden</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </div>
