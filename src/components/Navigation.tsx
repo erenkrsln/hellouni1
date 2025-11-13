@@ -17,13 +17,24 @@ export const Navigation = () => {
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [searchQuery, setSearchQuery] = useState("");
   const [unreadCount, setUnreadCount] = useState(0);
+  const [userProfile, setUserProfile] = useState<{ username: string | null; full_name: string | null } | null>(null);
   const { user } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchUnreadCount = async () => {
+    const fetchUserData = async () => {
       if (!user) return;
 
+      // Fetch user profile
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("username, full_name")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      setUserProfile(profile);
+
+      // Fetch unread count
       const { count } = await supabase
         .from("notifications")
         .select("*", { count: "exact", head: true })
@@ -34,7 +45,7 @@ export const Navigation = () => {
     };
 
     if (user) {
-      fetchUnreadCount();
+      fetchUserData();
 
       // Subscribe to new notifications
       const channel = supabase
@@ -48,7 +59,7 @@ export const Navigation = () => {
             filter: `user_id=eq.${user.id}`,
           },
           () => {
-            fetchUnreadCount();
+            fetchUserData();
           }
         )
         .on(
@@ -60,7 +71,7 @@ export const Navigation = () => {
             filter: `user_id=eq.${user.id}`,
           },
           () => {
-            fetchUnreadCount();
+            fetchUserData();
           }
         )
         .subscribe();
@@ -131,7 +142,9 @@ export const Navigation = () => {
                 <Button variant="ghost" size="icon" className="rounded-full">
                   <Avatar>
                     <AvatarFallback>
-                      {user?.email?.[0]?.toUpperCase() || "U"}
+                      {userProfile?.full_name?.[0]?.toUpperCase() || 
+                       userProfile?.username?.[0]?.toUpperCase() || 
+                       user?.email?.[0]?.toUpperCase() || "U"}
                     </AvatarFallback>
                   </Avatar>
                 </Button>
