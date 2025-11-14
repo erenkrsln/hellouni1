@@ -1,7 +1,7 @@
 import { Home, MessageCircle, Bell, Search, Calendar, MoreVertical, User, Settings, LogOut } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { Input } from "@/components/ui/input";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useState, useEffect } from "react";
@@ -17,7 +17,7 @@ export const Navigation = () => {
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [searchQuery, setSearchQuery] = useState("");
   const [unreadCount, setUnreadCount] = useState(0);
-  const [userProfile, setUserProfile] = useState<{ username: string | null; full_name: string | null } | null>(null);
+  const [userProfile, setUserProfile] = useState<{ username: string | null; full_name: string | null; avatar_url: string | null } | null>(null);
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -28,7 +28,7 @@ export const Navigation = () => {
       // Fetch user profile
       const { data: profile } = await supabase
         .from("profiles")
-        .select("username, full_name")
+        .select("username, full_name, avatar_url")
         .eq("id", user.id)
         .maybeSingle();
 
@@ -141,6 +141,9 @@ export const Navigation = () => {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="rounded-full">
                   <Avatar>
+                    {userProfile?.avatar_url && (
+                      <AvatarImage src={userProfile.avatar_url} alt="Avatar" />
+                    )}
                     <AvatarFallback>
                       {userProfile?.full_name?.[0]?.toUpperCase() || 
                        userProfile?.username?.[0]?.toUpperCase() || 
@@ -175,6 +178,9 @@ export const Navigation = () => {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="rounded-full">
                   <Avatar>
+                    {userProfile?.avatar_url && (
+                      <AvatarImage src={userProfile.avatar_url} alt="Avatar" />
+                    )}
                     <AvatarFallback>
                       {userProfile?.full_name?.[0]?.toUpperCase() || 
                        userProfile?.username?.[0]?.toUpperCase() || 
