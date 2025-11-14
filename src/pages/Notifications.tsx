@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Heart, MessageCircle, UserPlus, Check } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { formatDistanceToNow } from "date-fns";
 import { de } from "date-fns/locale";
@@ -264,6 +264,9 @@ const Notifications = () => {
               >
                 <div className="flex items-start gap-3">
                   <Avatar className="h-10 w-10">
+                    {notification.actor?.avatar_url && (
+                      <AvatarImage src={notification.actor.avatar_url} alt="Avatar" />
+                    )}
                     <AvatarFallback>
                       {notification.actor?.full_name?.[0]?.toUpperCase() ||
                         notification.actor?.username?.[0]?.toUpperCase() ||

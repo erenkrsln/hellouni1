@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Loader2, Users, MessageSquarePlus, UserPlus } from "lucide-react";
@@ -19,6 +19,7 @@ interface Conversation {
     id: string;
     full_name: string | null;
     email: string | null;
+    avatar_url: string | null;
   }[];
 }
 
@@ -74,7 +75,7 @@ export const ConversationList = ({
       const [convResult, allParticipantsResult, profilesResult] = await Promise.all([
         supabase.from("conversations").select("id, name, is_group").in("id", conversationIds),
         supabase.from("conversation_participants").select("conversation_id, user_id"),
-        supabase.from("profiles").select("id, full_name, email"),
+        supabase.from("profiles").select("id, full_name, email, avatar_url"),
       ]);
 
       const convData = convResult.data || [];
@@ -93,6 +94,7 @@ export const ConversationList = ({
             id: profile.id,
             full_name: profile.full_name,
             email: profile.email,
+            avatar_url: profile.avatar_url,
           }));
 
         return {
@@ -156,6 +158,7 @@ export const ConversationList = ({
         name: conv.name || "Unbenannte Gruppe",
         subtitle: `${conv.participants.length + 1} Teilnehmer`,
         avatar: <Users className="h-5 w-5" />,
+        avatarUrl: null,
       };
     } else {
       const otherUser = conv.participants[0];
@@ -163,6 +166,7 @@ export const ConversationList = ({
         name: otherUser?.full_name || "Unbekannter Nutzer",
         subtitle: otherUser?.email || "",
         avatar: otherUser?.full_name?.[0]?.toUpperCase() || "U",
+        avatarUrl: otherUser?.avatar_url || null,
       };
     }
   };
@@ -273,6 +277,9 @@ export const ConversationList = ({
                         }`}
                       >
                         <Avatar className="h-12 w-12">
+                          {display.avatarUrl && (
+                            <AvatarImage src={display.avatarUrl} alt="Avatar" />
+                          )}
                           <AvatarFallback className="text-base">
                             {typeof display.avatar === 'string' ? display.avatar : display.avatar}
                           </AvatarFallback>
@@ -327,6 +334,9 @@ export const ConversationList = ({
                         }`}
                       >
                         <Avatar className="h-12 w-12">
+                          {display.avatarUrl && (
+                            <AvatarImage src={display.avatarUrl} alt="Avatar" />
+                          )}
                           <AvatarFallback className="text-base">
                             {typeof display.avatar === 'string' ? display.avatar : display.avatar}
                           </AvatarFallback>
@@ -381,6 +391,9 @@ export const ConversationList = ({
                         }`}
                       >
                         <Avatar className="h-12 w-12">
+                          {display.avatarUrl && (
+                            <AvatarImage src={display.avatarUrl} alt="Avatar" />
+                          )}
                           <AvatarFallback className="text-base">
                             {typeof display.avatar === 'string' ? display.avatar : display.avatar}
                           </AvatarFallback>

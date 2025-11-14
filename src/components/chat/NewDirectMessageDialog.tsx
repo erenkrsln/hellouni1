@@ -8,7 +8,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Search } from "lucide-react";
@@ -17,6 +17,7 @@ interface User {
   id: string;
   full_name: string | null;
   email: string | null;
+  avatar_url: string | null;
 }
 
 interface NewDirectMessageDialogProps {
@@ -54,7 +55,7 @@ export const NewDirectMessageDialog = ({
     try {
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, full_name, email")
+        .select("id, full_name, email, avatar_url")
         .neq("id", currentUserId)
         .order("full_name");
 
@@ -146,6 +147,9 @@ export const NewDirectMessageDialog = ({
                     className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-accent transition-colors disabled:opacity-50"
                   >
                     <Avatar>
+                      {user.avatar_url && (
+                        <AvatarImage src={user.avatar_url} alt="Avatar" />
+                      )}
                       <AvatarFallback>
                         {user.full_name?.[0]?.toUpperCase() ||
                           user.email?.[0]?.toUpperCase() ||
