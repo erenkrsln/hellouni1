@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Send, Loader2, Check, CheckCheck, Users, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -18,6 +18,7 @@ interface Message {
   created_at: string;
   sender_profile?: {
     full_name: string | null;
+    avatar_url: string | null;
   };
   read_by?: string[];
 }
@@ -51,7 +52,8 @@ export const ChatInterface = ({
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
-  const [participants, setParticipants] = useState<{ id: string; full_name: string | null }[]>([]);
+  const [participants, setParticipants] = useState<{ id: string; full_name: string | null; avatar_url: string | null }[]>([]);
+  const [otherUserAvatar, setOtherUserAvatar] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const convChannelRef = useRef<any>(null);
 
@@ -81,7 +83,7 @@ export const ChatInterface = ({
           // Fetch sender profile
           const { data: profile } = await supabase
             .from("profiles")
-            .select("full_name")
+            .select("full_name, avatar_url")
             .eq("id", newMsg.sender_id)
             .single();
 
@@ -189,10 +191,18 @@ export const ChatInterface = ({
       if (userIds.length > 0) {
         const { data: profileData } = await supabase
           .from("profiles")
-          .select("id, full_name")
+          .select("id, full_name, avatar_url")
           .in("id", userIds);
           
         setParticipants(profileData || []);
+        
+        // Set other user avatar for 1-on-1 chats
+        if (!isGroup && otherUserId && profileData) {
+          const otherUser = profileData.find(p => p.id === otherUserId);
+          if (otherUser?.avatar_url) {
+            setOtherUserAvatar(otherUser.avatar_url);
+          }
+        }
       }
     } catch (error) {
       // Silent fail
@@ -217,7 +227,7 @@ export const ChatInterface = ({
       const senderIds = [...new Set(messagesData.map(msg => msg.sender_id))];
       const { data: profilesData } = await supabase
         .from("profiles")
-        .select("id, full_name")
+        .select("id, full_name, avatar_url")
         .in("id", senderIds);
       
       const profilesMap = new Map(profilesData?.map(p => [p.id, p]) || []);
@@ -284,7 +294,7 @@ export const ChatInterface = ({
         sender_id: currentUserId,
         content: validated.content,
         created_at: new Date().toISOString(),
-        sender_profile: { full_name: null },
+        sender_profile: { full_name: null, avatar_url: null },
         read_by: [currentUserId],
       };
       
@@ -380,6 +390,9 @@ export const ChatInterface = ({
           </Button>
         )}
         <Avatar>
+          {!isGroup && otherUserAvatar && (
+            <AvatarImage src={otherUserAvatar} alt="Avatar" />
+          )}
           <AvatarFallback>
             {isGroup ? <Users className="h-5 w-5" /> : conversationName?.[0]?.toUpperCase() || "U"}
           </AvatarFallback>
