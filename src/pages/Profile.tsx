@@ -7,7 +7,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Calendar, ArrowLeft, UserPlus, UserMinus } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { formatDistanceToNow } from "date-fns";
 import { de } from "date-fns/locale";
@@ -62,6 +64,7 @@ const Profile = () => {
   const [notFound, setNotFound] = useState(false);
   const [followStats, setFollowStats] = useState<FollowStats>({ followers: 0, following: 0, isFollowing: false });
   const [followLoading, setFollowLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   const fetchFollowStats = async (profileId: string) => {
     if (!user) return;
@@ -94,6 +97,68 @@ const Profile = () => {
       });
     } catch (error) {
       console.error("Error fetching follow stats:", error);
+    }
+  };
+
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!user || !profile) return;
+
+    try {
+      setUploading(true);
+
+      if (!event.target.files || event.target.files.length === 0) {
+        return;
+      }
+
+      const file = event.target.files[0];
+      const fileExt = file.name.split(".").pop();
+      const filePath = `${user.id}/avatar.${fileExt}`;
+
+      // Delete old avatar if exists
+      if (profile.avatar_url) {
+        const oldPath = profile.avatar_url.split("/").pop();
+        if (oldPath) {
+          await supabase.storage.from("avatars").remove([`${user.id}/${oldPath}`]);
+        }
+      }
+
+      // Upload new avatar
+      const { error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from("avatars")
+        .getPublicUrl(filePath);
+
+      // Update profile with new avatar URL
+      const { error: updateError } = await supabase
+        .from("profiles")
+        .update({ avatar_url: urlData.publicUrl })
+        .eq("id", user.id);
+
+      if (updateError) {
+        throw updateError;
+      }
+
+      setProfile({ ...profile, avatar_url: urlData.publicUrl });
+      toast({
+        title: "Erfolg",
+        description: "Avatar erfolgreich hochgeladen!",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Fehler",
+        description: "Fehler beim Hochladen: " + error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -328,11 +393,33 @@ const Profile = () => {
               Zurück
             </Button>
             <div className="flex items-start gap-4">
-              <Avatar className="h-20 w-20">
-                <AvatarFallback className="text-2xl">
-                  {profile.full_name?.[0]?.toUpperCase() || profile.username?.[0]?.toUpperCase() || "U"}
-                </AvatarFallback>
-              </Avatar>
+              <div className="relative">
+                <Label htmlFor={isOwnProfile ? "avatar-upload" : undefined} className={isOwnProfile ? "cursor-pointer" : ""}>
+                  <Avatar className={`h-20 w-20 ${isOwnProfile ? "hover:opacity-80 transition-opacity" : ""}`}>
+                    {profile.avatar_url && (
+                      <AvatarImage src={profile.avatar_url} alt="Avatar" />
+                    )}
+                    <AvatarFallback className="text-2xl">
+                      {profile.full_name?.[0]?.toUpperCase() || profile.username?.[0]?.toUpperCase() || "U"}
+                    </AvatarFallback>
+                  </Avatar>
+                  {isOwnProfile && uploading && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full">
+                      <Loader2 className="h-6 w-6 animate-spin text-white" />
+                    </div>
+                  )}
+                </Label>
+                {isOwnProfile && (
+                  <Input
+                    id="avatar-upload"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAvatarUpload}
+                    disabled={uploading}
+                    className="hidden"
+                  />
+                )}
+              </div>
               <div className="flex-1">
                 <h1 className="text-2xl font-bold">{profile.full_name || "Unbekannt"}</h1>
                 <p className="text-muted-foreground">@{profile.username || "unbekannt"}</p>
