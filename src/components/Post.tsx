@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Heart, MessageCircle, Share2, Trash2, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -194,6 +194,9 @@ export const Post = ({ post, currentUserId, onPostDeleted, onPostUpdated }: Post
             className="cursor-pointer hover:opacity-80 transition-opacity"
             onClick={() => post.profiles?.username && navigate(`/profile/${post.profiles.username}`)}
           >
+            {post.profiles?.avatar_url && (
+              <AvatarImage src={post.profiles.avatar_url} alt="Avatar" />
+            )}
             <AvatarFallback>
               {post.profiles?.full_name?.[0]?.toUpperCase() || post.profiles?.username?.[0]?.toUpperCase() || "U"}
             </AvatarFallback>
@@ -293,6 +296,9 @@ export const Post = ({ post, currentUserId, onPostDeleted, onPostUpdated }: Post
                 className="h-8 w-8 cursor-pointer hover:opacity-80 transition-opacity"
                 onClick={() => comment.profiles?.username && navigate(`/profile/${comment.profiles.username}`)}
               >
+                {comment.profiles?.avatar_url && (
+                  <AvatarImage src={comment.profiles.avatar_url} alt="Avatar" />
+                )}
                 <AvatarFallback className="text-xs">
                   {comment.profiles?.full_name?.[0]?.toUpperCase() || comment.profiles?.username?.[0]?.toUpperCase() || "U"}
                 </AvatarFallback>
