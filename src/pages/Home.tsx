@@ -8,7 +8,6 @@ import { PostForm } from "@/components/PostForm";
 import { Post } from "@/components/Post";
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { SwipeableLayout } from "@/components/SwipeableLayout";
 
 interface PostWithProfile {
   id: string;
@@ -167,38 +166,36 @@ const Home = () => {
   }
 
   return (
-    <SwipeableLayout>
-      <div className="min-h-screen bg-background pb-16 md:pb-0">
-        <Navigation />
+    <div className="min-h-screen bg-background pb-16 md:pb-0">
+      <Navigation />
+      
+      <main className="container max-w-2xl mx-auto px-4 py-6 space-y-6">
+        <PostForm onPostCreated={handlePostCreated} />
         
-        <main className="container max-w-2xl mx-auto px-4 py-6 space-y-6">
-          <PostForm onPostCreated={handlePostCreated} />
-          
-          {loading ? (
-            <div className="flex justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin" />
-            </div>
-          ) : posts.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              Noch keine Beiträge vorhanden. Sei der Erste und erstelle einen!
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {posts.map((post) => (
-                <Post 
-                  key={post.id} 
-                  post={post} 
-                  currentUserId={user.id}
-                  onPostDeleted={handlePostDeleted}
-                  onPostUpdated={fetchPosts}
-                />
-              ))}
-            </div>
-          )}
-        </main>
-        <BottomNavigation />
-      </div>
-    </SwipeableLayout>
+        {loading ? (
+          <div className="flex justify-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin" />
+          </div>
+        ) : posts.length === 0 ? (
+          <div className="text-center py-12 text-muted-foreground">
+            Noch keine Beiträge vorhanden. Sei der Erste und erstelle einen!
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {posts.map((post) => (
+              <Post 
+                key={post.id} 
+                post={post} 
+                currentUserId={user.id}
+                onPostDeleted={handlePostDeleted}
+                onPostUpdated={fetchPosts}
+              />
+            ))}
+          </div>
+        )}
+      </main>
+      <BottomNavigation />
+    </div>
   );
 };
 

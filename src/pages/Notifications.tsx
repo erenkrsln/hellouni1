@@ -11,7 +11,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { formatDistanceToNow } from "date-fns";
 import { de } from "date-fns/locale";
-import { SwipeableLayout } from "@/components/SwipeableLayout";
 
 interface Notification {
   id: string;
@@ -224,8 +223,7 @@ const Notifications = () => {
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
   return (
-    <SwipeableLayout>
-      <div className="min-h-screen bg-background pb-16 md:pb-0">
+    <div className="min-h-screen bg-background pb-16 md:pb-0">
       <Navigation />
       
       <main className="container max-w-2xl mx-auto px-4 py-6">
@@ -305,7 +303,6 @@ const Notifications = () => {
       </main>
       <BottomNavigation />
     </div>
-    </SwipeableLayout>
   );
 };
 

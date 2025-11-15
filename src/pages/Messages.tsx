@@ -7,7 +7,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { ConversationList } from "@/components/chat/ConversationList";
 import { ChatInterface } from "@/components/chat/ChatInterface";
 import { Loader2 } from "lucide-react";
-import { SwipeableLayout } from "@/components/SwipeableLayout";
 
 const Messages = () => {
   const { user } = useAuth();
@@ -65,8 +64,7 @@ const Messages = () => {
   }
 
   return (
-    <SwipeableLayout>
-      <div className="h-screen bg-background flex flex-col overflow-hidden pb-16 md:pb-0">
+    <div className="h-screen bg-background flex flex-col overflow-hidden pb-16 md:pb-0">
       {/* Navigation - Hidden on mobile when chat is open */}
       <div className={selectedConversation ? "hidden md:block" : ""}>
         <Navigation />
@@ -130,7 +128,6 @@ const Messages = () => {
       </main>
       <BottomNavigation />
     </div>
-    </SwipeableLayout>
   );
 };
 

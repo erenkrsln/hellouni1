@@ -13,7 +13,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { formatDistanceToNow } from "date-fns";
 import { de } from "date-fns/locale";
-import { SwipeableLayout } from "@/components/SwipeableLayout";
 
 interface Profile {
   id: string;
@@ -377,8 +376,7 @@ const Profile = () => {
   const isOwnProfile = user?.id === profile.id;
 
   return (
-    <SwipeableLayout>
-      <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background">
       <Navigation />
       
       <main className="container max-w-2xl mx-auto px-4 py-6 space-y-6">
@@ -503,7 +501,6 @@ const Profile = () => {
         </div>
       </main>
     </div>
-    </SwipeableLayout>
   );
 };
 
