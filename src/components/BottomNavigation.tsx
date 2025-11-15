@@ -56,8 +56,8 @@ export const BottomNavigation = () => {
   };
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-card border-t shadow-lg pb-safe">
-      <div className="flex items-center justify-around h-16 px-4">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-card border-t shadow-lg">
+      <div className="flex items-center justify-around h-16 px-4" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) * 0.5)' }}>
         <NavLink
           to="/home"
           className="flex items-center justify-center p-3 rounded-lg transition-colors hover-scale"
