@@ -191,7 +191,7 @@ export const Navigation = () => {
                   </Avatar>
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left" className="w-[280px] p-0">
+              <SheetContent side="right" className="w-[280px] p-0">
                 <div className="flex flex-col h-full">
                   {/* User Info Header */}
                   <div className="p-6 border-b">
