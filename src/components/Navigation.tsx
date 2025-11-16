@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import HelloUniLogo from "@/assets/HelloUni_Logo.svg";
@@ -18,6 +19,7 @@ export const Navigation = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [unreadCount, setUnreadCount] = useState(0);
   const [userProfile, setUserProfile] = useState<{ username: string | null; full_name: string | null; avatar_url: string | null } | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -172,10 +174,10 @@ export const Navigation = () => {
             </DropdownMenu>
           </div>
 
-          {/* Mobile Navigation - Profile Avatar with Dropdown */}
+          {/* Mobile Navigation - Profile Avatar with Sheet */}
           <div className="flex md:hidden items-center gap-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+              <SheetTrigger asChild>
                 <Button variant="ghost" size="icon" className="rounded-full">
                   <Avatar>
                     {userProfile?.avatar_url && (
@@ -188,25 +190,73 @@ export const Navigation = () => {
                     </AvatarFallback>
                   </Avatar>
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>Mein Account</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => navigate(`/profile/${userProfile?.username || user?.email?.split('@')[0]}`)}>
-                  <User className="mr-2 h-4 w-4" />
-                  <span>Profil</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate('/settings')}>
-                  <Settings className="mr-2 h-4 w-4" />
-                  <span>Einstellungen</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleSignOut}>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>Abmelden</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-[280px] p-0">
+                <div className="flex flex-col h-full">
+                  {/* User Info Header */}
+                  <div className="p-6 border-b">
+                    <div className="flex items-center gap-3 mb-4">
+                      <Avatar className="h-12 w-12">
+                        {userProfile?.avatar_url && (
+                          <AvatarImage src={userProfile.avatar_url} alt="Avatar" />
+                        )}
+                        <AvatarFallback>
+                          {userProfile?.full_name?.[0]?.toUpperCase() || 
+                           userProfile?.username?.[0]?.toUpperCase() || 
+                           user?.email?.[0]?.toUpperCase() || "U"}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-foreground truncate">
+                          {userProfile?.full_name || userProfile?.username || "User"}
+                        </p>
+                        <p className="text-sm text-muted-foreground truncate">
+                          @{userProfile?.username || user?.email?.split('@')[0]}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Menu Items */}
+                  <div className="flex-1 py-4">
+                    <button
+                      onClick={() => {
+                        navigate(`/profile/${userProfile?.username || user?.email?.split('@')[0]}`);
+                        setMobileMenuOpen(false);
+                      }}
+                      className="flex items-center gap-4 px-6 py-4 w-full hover:bg-accent transition-colors"
+                    >
+                      <User className="h-6 w-6" />
+                      <span className="text-lg font-medium">Profil</span>
+                    </button>
+                    
+                    <button
+                      onClick={() => {
+                        navigate('/settings');
+                        setMobileMenuOpen(false);
+                      }}
+                      className="flex items-center gap-4 px-6 py-4 w-full hover:bg-accent transition-colors"
+                    >
+                      <Settings className="h-6 w-6" />
+                      <span className="text-lg font-medium">Einstellungen</span>
+                    </button>
+
+                    <div className="border-t my-2" />
+
+                    <button
+                      onClick={() => {
+                        handleSignOut();
+                        setMobileMenuOpen(false);
+                      }}
+                      className="flex items-center gap-4 px-6 py-4 w-full hover:bg-accent transition-colors"
+                    >
+                      <LogOut className="h-6 w-6" />
+                      <span className="text-lg font-medium">Abmelden</span>
+                    </button>
+                  </div>
+                </div>
+              </SheetContent>
+            </Sheet>
           </div>
         </div>
       </div>
