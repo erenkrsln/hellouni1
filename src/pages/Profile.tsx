@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigation } from "@/components/Navigation";
@@ -13,154 +13,27 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { formatDistanceToNow } from "date-fns";
 import { de } from "date-fns/locale";
-
-interface Profile {
-  id: string;
-  username: string | null;
-  full_name: string | null;
-  avatar_url: string | null;
-  created_at: string;
-}
-
-interface FollowStats {
-  followers: number;
-  following: number;
-  isFollowing: boolean;
-}
-
-interface PostWithProfile {
-  id: string;
-  content: string;
-  image_url: string | null;
-  created_at: string;
-  user_id: string;
-  profiles: {
-    username: string | null;
-    full_name: string | null;
-    avatar_url: string | null;
-  } | null;
-  post_likes: { user_id: string }[];
-  post_comments: {
-    id: string;
-    content: string;
-    created_at: string;
-    user_id: string;
-    profiles: {
-      username: string | null;
-      full_name: string | null;
-      avatar_url: string | null;
-    } | null;
-  }[];
-}
+import { useProfileByUsername } from "@/hooks/useProfile";
+import { useUserPosts } from "@/hooks/usePosts";
+import { useFollowStats } from "@/hooks/useFollowStats";
+import { useQueryClient } from "@tanstack/react-query";
 
 const Profile = () => {
   const { username } = useParams<{ username: string }>();
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [posts, setPosts] = useState<PostWithProfile[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
-  const [followStats, setFollowStats] = useState<FollowStats>({ followers: 0, following: 0, isFollowing: false });
+  const queryClient = useQueryClient();
   const [followLoading, setFollowLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
 
-  const fetchFollowStats = async (profileId: string) => {
-    if (!user) return;
+  const { data: profile, isLoading: profileLoading } = useProfileByUsername(username);
+  const { data: posts = [], isLoading: postsLoading } = useUserPosts(profile?.id);
+  const { data: followStats } = useFollowStats(profile?.id, user?.id);
+  
+  const loading = profileLoading;
+  const notFound = !profileLoading && !profile;
 
-    try {
-      // Count followers
-      const { count: followersCount } = await supabase
-        .from("user_follows")
-        .select("*", { count: "exact", head: true })
-        .eq("following_id", profileId);
-
-      // Count following
-      const { count: followingCount } = await supabase
-        .from("user_follows")
-        .select("*", { count: "exact", head: true })
-        .eq("follower_id", profileId);
-
-      // Check if current user follows this profile
-      const { data: followData } = await supabase
-        .from("user_follows")
-        .select("id")
-        .eq("follower_id", user.id)
-        .eq("following_id", profileId)
-        .maybeSingle();
-
-      setFollowStats({
-        followers: followersCount || 0,
-        following: followingCount || 0,
-        isFollowing: !!followData,
-      });
-    } catch (error) {
-      console.error("Error fetching follow stats:", error);
-    }
-  };
-
-  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (!user || !profile) return;
-
-    try {
-      setUploading(true);
-
-      if (!event.target.files || event.target.files.length === 0) {
-        return;
-      }
-
-      const file = event.target.files[0];
-      const fileExt = file.name.split(".").pop();
-      const filePath = `${user.id}/avatar.${fileExt}`;
-
-      // Delete old avatar if exists
-      if (profile.avatar_url) {
-        const oldPath = profile.avatar_url.split("/").pop();
-        if (oldPath) {
-          await supabase.storage.from("avatars").remove([`${user.id}/${oldPath}`]);
-        }
-      }
-
-      // Upload new avatar
-      const { error: uploadError } = await supabase.storage
-        .from("avatars")
-        .upload(filePath, file, { upsert: true });
-
-      if (uploadError) {
-        throw uploadError;
-      }
-
-      // Get public URL
-      const { data: urlData } = supabase.storage
-        .from("avatars")
-        .getPublicUrl(filePath);
-
-      // Update profile with new avatar URL
-      const { error: updateError } = await supabase
-        .from("profiles")
-        .update({ avatar_url: urlData.publicUrl })
-        .eq("id", user.id);
-
-      if (updateError) {
-        throw updateError;
-      }
-
-      setProfile({ ...profile, avatar_url: urlData.publicUrl });
-      toast({
-        title: "Erfolg",
-        description: "Avatar erfolgreich hochgeladen!",
-      });
-    } catch (error: any) {
-      toast({
-        title: "Fehler",
-        description: "Fehler beim Hochladen: " + error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setUploading(false);
-    }
-  };
 
   const handleFollowToggle = async () => {
     if (!user || !profile) return;
