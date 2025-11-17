@@ -77,7 +77,7 @@ const Home = () => {
       <main className="container max-w-2xl mx-auto px-4 py-6 space-y-6">
         <PostForm onPostCreated={handlePostCreated} />
         
-        {loading ? (
+        {postsLoading && posts.length === 0 ? (
           <div className="flex justify-center py-8">
             <Loader2 className="h-8 w-8 animate-spin" />
           </div>
@@ -93,7 +93,7 @@ const Home = () => {
                 post={post} 
                 currentUserId={user.id}
                 onPostDeleted={handlePostDeleted}
-                onPostUpdated={fetchPosts}
+                onPostUpdated={handlePostDeleted}
               />
             ))}
           </div>

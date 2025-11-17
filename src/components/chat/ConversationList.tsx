@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -10,18 +10,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CreateGroupDialog } from "./CreateGroupDialog";
 import { NewDirectMessageDialog } from "./NewDirectMessageDialog";
 import { useToast } from "@/hooks/use-toast";
-
-interface Conversation {
-  id: string;
-  name: string | null;
-  is_group: boolean;
-  participants: {
-    id: string;
-    full_name: string | null;
-    email: string | null;
-    avatar_url: string | null;
-  }[];
-}
+import { useConversations } from "@/hooks/useConversations";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface ConversationListProps {
   currentUserId: string;
@@ -40,400 +30,324 @@ export const ConversationList = ({
   selectedConversationId 
 }: ConversationListProps) => {
   const { toast } = useToast();
-  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
-  const [loading, setLoading] = useState(true);
   const [showCreateGroup, setShowCreateGroup] = useState(false);
   const [showNewDM, setShowNewDM] = useState(false);
 
-  useEffect(() => {
-    fetchConversations();
-  }, [currentUserId]);
+  const { data: conversations = [], isLoading } = useConversations(currentUserId);
 
-  const fetchConversations = async () => {
+  const handleConversationClick = async (conversation: any) => {
     try {
-      const { data: userConvs } = await supabase
-        .from("conversation_participants")
-        .select("conversation_id")
-        .eq("user_id", currentUserId);
+      if (conversation.is_group) {
+        onConversationSelect({
+          id: conversation.id,
+          name: conversation.name,
+          isGroup: true,
+        });
+      } else {
+        const otherUser = conversation.participants[0];
+        if (!otherUser) return;
 
-      if (!userConvs) {
-        setConversations([]);
-        setLoading(false);
-        return;
+        const { data: conversationId, error } = await supabase.rpc(
+          "get_or_create_conversation",
+          {
+            current_user_id: currentUserId,
+            other_user_id: otherUser.id,
+          }
+        );
+
+        if (error) throw error;
+
+        onConversationSelect({
+          id: conversationId,
+          name: otherUser.full_name || otherUser.email || "Unknown",
+          isGroup: false,
+          otherUserId: otherUser.id,
+        });
       }
-
-      const conversationIds = userConvs.map(c => c.conversation_id);
-
-      if (conversationIds.length === 0) {
-        setConversations([]);
-        setLoading(false);
-        return;
-      }
-
-      // Get conversation details and participants
-      const [convResult, allParticipantsResult, profilesResult] = await Promise.all([
-        supabase.from("conversations").select("id, name, is_group").in("id", conversationIds),
-        supabase.from("conversation_participants").select("conversation_id, user_id"),
-        supabase.from("profiles").select("id, full_name, email, avatar_url"),
-      ]);
-
-      const convData = convResult.data || [];
-      const allParticipants = allParticipantsResult.data || [];
-      const allProfiles = profilesResult.data || [];
-
-      // Build conversations with participants
-      const conversationsWithParticipants = convData.map((conv: any) => {
-        const convParticipants = allParticipants
-          .filter((p: any) => p.conversation_id === conv.id && p.user_id !== currentUserId)
-          .map((p: any) => p.user_id);
-
-        const participants = allProfiles
-          .filter((profile: any) => convParticipants.includes(profile.id))
-          .map((profile: any) => ({
-            id: profile.id,
-            full_name: profile.full_name,
-            email: profile.email,
-            avatar_url: profile.avatar_url,
-          }));
-
-        return {
-          ...conv,
-          participants,
-        };
-      });
-
-      setConversations(conversationsWithParticipants);
     } catch (error: any) {
-      console.error("Error fetching conversations:", error);
+      console.error("Error handling conversation click:", error);
       toast({
         title: "Fehler",
-        description: error.message || "Fehler beim Laden der Konversationen",
+        description: error.message || "Fehler beim Öffnen der Konversation",
         variant: "destructive",
       });
-    } finally {
-      setLoading(false);
     }
   };
 
-  const handleConversationClick = async (conv: Conversation) => {
-    if (conv.is_group) {
-      onConversationSelect({
-        id: conv.id,
-        name: conv.name,
-        isGroup: true,
-      });
-    } else {
-      // For 1-on-1, get or create conversation
-      const otherUser = conv.participants[0];
-      if (otherUser) {
-        try {
-          const { data: conversationId, error } = await supabase.rpc('get_or_create_conversation', { 
-            other_user_id: otherUser.id 
-          });
-
-          if (error) throw error;
-
-          onConversationSelect({
-            id: conversationId,
-            name: otherUser.full_name,
-            isGroup: false,
-            otherUserId: otherUser.id,
-          });
-        } catch (error: any) {
-          console.error("Error getting conversation:", error);
-          toast({
-            title: "Fehler",
-            description: error.message || "Fehler beim Öffnen der Konversation",
-            variant: "destructive",
-          });
-        }
-      }
-    }
-  };
-
-  const getConversationDisplay = (conv: Conversation) => {
-    if (conv.is_group) {
+  const getConversationDisplay = (conversation: any) => {
+    if (conversation.is_group) {
       return {
-        name: conv.name || "Unbenannte Gruppe",
-        subtitle: `${conv.participants.length + 1} Teilnehmer`,
-        avatar: <Users className="h-5 w-5" />,
-        avatarUrl: null,
+        name: conversation.name || "Gruppe",
+        subtitle: `${conversation.participants.length} Mitglieder`,
+        avatar: null,
       };
     } else {
-      const otherUser = conv.participants[0];
+      const otherUser = conversation.participants[0];
       return {
-        name: otherUser?.full_name || "Unbekannter Nutzer",
+        name: otherUser?.full_name || otherUser?.email || "Unbekannt",
         subtitle: otherUser?.email || "",
-        avatar: otherUser?.full_name?.[0]?.toUpperCase() || "U",
-        avatarUrl: otherUser?.avatar_url || null,
+        avatar: otherUser?.avatar_url,
       };
     }
   };
 
-  const filteredConversations = conversations.filter(conv => {
-    const searchLower = searchQuery.toLowerCase();
+  const filteredConversations = conversations.filter((conv: any) => {
     const display = getConversationDisplay(conv);
-    return (
-      display.name.toLowerCase().includes(searchLower) ||
-      display.subtitle.toLowerCase().includes(searchLower)
-    );
+    return display.name.toLowerCase().includes(searchQuery.toLowerCase());
   });
 
-  const directMessages = filteredConversations.filter(c => !c.is_group);
-  const groupChats = filteredConversations.filter(c => c.is_group);
+  const directConversations = filteredConversations.filter((c: any) => !c.is_group);
+  const groupConversations = filteredConversations.filter((c: any) => c.is_group);
 
   return (
-    <>
-      <div className="h-full flex flex-col bg-background md:rounded-lg md:border md:shadow-sm overflow-hidden">
-        <div className="p-4 md:p-6 space-y-4 flex-shrink-0">
-          <div className="flex items-center justify-between">
-            <h1 className="font-bold text-2xl md:text-3xl">Chats</h1>
-            <div className="flex gap-1">
-              <Button
-                size="icon"
-                variant="ghost"
-                onClick={() => setShowNewDM(true)}
-                title="Neue Direktnachricht"
-                className="rounded-full"
-              >
-                <UserPlus className="h-5 w-5" />
-              </Button>
-              <Button
-                size="icon"
-                variant="ghost"
-                onClick={() => setShowCreateGroup(true)}
-                title="Neue Gruppe"
-                className="rounded-full"
-              >
-                <Users className="h-5 w-5" />
-              </Button>
-            </div>
-          </div>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Suchen..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 rounded-full bg-muted/50 border-0"
-            />
+    <Card className="h-full flex flex-col overflow-hidden">
+      <div className="p-4 border-b space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold">Nachrichten</h2>
+          <div className="flex gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowNewDM(true)}
+              title="Neue Direktnachricht"
+            >
+              <MessageSquarePlus className="h-5 w-5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowCreateGroup(true)}
+              title="Neue Gruppe erstellen"
+            >
+              <Users className="h-5 w-5" />
+            </Button>
           </div>
         </div>
 
-        <Tabs defaultValue="all" className="flex-1 flex flex-col min-h-0">
-          <TabsList className="mx-4 grid w-auto grid-cols-3 gap-2 bg-transparent">
-            <TabsTrigger value="all" className="rounded-full data-[state=active]:bg-muted">
-              Alle
-            </TabsTrigger>
-            <TabsTrigger value="direct" className="rounded-full data-[state=active]:bg-muted">
-              Direkt
-            </TabsTrigger>
-            <TabsTrigger value="groups" className="rounded-full data-[state=active]:bg-muted">
-              Gruppen
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="all" className="flex-1 mt-2 overflow-hidden">
-            <div className="h-full overflow-y-auto">
-          {isLoading && conversations.length === 0 ? (
-                <div className="flex justify-center py-8">
-                  <Loader2 className="h-6 w-6 animate-spin" />
-                </div>
-              ) : filteredConversations.length === 0 ? (
-                <div className="text-center py-8 px-4">
-                  <p className="text-muted-foreground text-sm mb-4">
-                    Keine Konversationen gefunden
-                  </p>
-                  <div className="flex flex-col gap-2">
-                    <Button
-                      variant="outline"
-                      onClick={() => setShowNewDM(true)}
-                      className="mx-auto rounded-full"
-                    >
-                      <UserPlus className="h-4 w-4 mr-2" />
-                      Neue Direktnachricht
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => setShowCreateGroup(true)}
-                      className="mx-auto rounded-full"
-                    >
-                      <Users className="h-4 w-4 mr-2" />
-                      Neue Gruppe erstellen
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <div>
-                  {filteredConversations.map((conv) => {
-                    const display = getConversationDisplay(conv);
-                    return (
-                      <button
-                        key={conv.id}
-                        onClick={() => handleConversationClick(conv)}
-                        className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors border-b last:border-b-0 ${
-                          selectedConversationId === conv.id ? "bg-muted/50" : ""
-                        }`}
-                      >
-                        <Avatar className="h-12 w-12">
-                          {display.avatarUrl && (
-                            <AvatarImage src={display.avatarUrl} alt="Avatar" />
-                          )}
-                          <AvatarFallback className="text-base">
-                            {typeof display.avatar === 'string' ? display.avatar : display.avatar}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 text-left overflow-hidden min-w-0">
-                          <div className="flex items-center justify-between gap-2 mb-1">
-                            <p className="font-semibold truncate">{display.name}</p>
-                            <span className="text-xs text-muted-foreground flex-shrink-0">12:30</span>
-                          </div>
-                          <p className="text-sm text-muted-foreground truncate">
-                            {display.subtitle}
-                          </p>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="direct" className="flex-1 mt-2 overflow-hidden">
-            <div className="h-full overflow-y-auto">
-              {loading ? (
-                <div className="flex justify-center py-8">
-                  <Loader2 className="h-6 w-6 animate-spin" />
-                </div>
-              ) : directMessages.length === 0 ? (
-                <div className="text-center py-8 px-4">
-                  <p className="text-muted-foreground text-sm mb-4">
-                    Noch keine Direktnachrichten
-                  </p>
-                  <Button
-                    variant="outline"
-                    onClick={() => setShowNewDM(true)}
-                    className="mx-auto rounded-full"
-                  >
-                    <UserPlus className="h-4 w-4 mr-2" />
-                    Neue Direktnachricht starten
-                  </Button>
-                </div>
-              ) : (
-                <div>
-                  {directMessages.map((conv) => {
-                    const display = getConversationDisplay(conv);
-                    return (
-                      <button
-                        key={conv.id}
-                        onClick={() => handleConversationClick(conv)}
-                        className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors border-b last:border-b-0 ${
-                          selectedConversationId === conv.id ? "bg-muted/50" : ""
-                        }`}
-                      >
-                        <Avatar className="h-12 w-12">
-                          {display.avatarUrl && (
-                            <AvatarImage src={display.avatarUrl} alt="Avatar" />
-                          )}
-                          <AvatarFallback className="text-base">
-                            {typeof display.avatar === 'string' ? display.avatar : display.avatar}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 text-left overflow-hidden min-w-0">
-                          <div className="flex items-center justify-between gap-2 mb-1">
-                            <p className="font-semibold truncate">{display.name}</p>
-                            <span className="text-xs text-muted-foreground flex-shrink-0">12:30</span>
-                          </div>
-                          <p className="text-sm text-muted-foreground truncate">
-                            {display.subtitle}
-                          </p>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="groups" className="flex-1 mt-2 overflow-hidden">
-            <div className="h-full overflow-y-auto">
-              {loading ? (
-                <div className="flex justify-center py-8">
-                  <Loader2 className="h-6 w-6 animate-spin" />
-                </div>
-              ) : groupChats.length === 0 ? (
-                <div className="text-center py-8 px-4">
-                  <p className="text-muted-foreground text-sm mb-4">
-                    Noch keine Gruppen
-                  </p>
-                  <Button
-                    variant="outline"
-                    onClick={() => setShowCreateGroup(true)}
-                    className="mx-auto rounded-full"
-                  >
-                    <Users className="h-4 w-4 mr-2" />
-                    Neue Gruppe erstellen
-                  </Button>
-                </div>
-              ) : (
-                <div>
-                  {groupChats.map((conv) => {
-                    const display = getConversationDisplay(conv);
-                    return (
-                      <button
-                        key={conv.id}
-                        onClick={() => handleConversationClick(conv)}
-                        className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors border-b last:border-b-0 ${
-                          selectedConversationId === conv.id ? "bg-muted/50" : ""
-                        }`}
-                      >
-                        <Avatar className="h-12 w-12">
-                          {display.avatarUrl && (
-                            <AvatarImage src={display.avatarUrl} alt="Avatar" />
-                          )}
-                          <AvatarFallback className="text-base">
-                            {typeof display.avatar === 'string' ? display.avatar : display.avatar}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 text-left overflow-hidden min-w-0">
-                          <div className="flex items-center justify-between gap-2 mb-1">
-                            <p className="font-semibold truncate">{display.name}</p>
-                            <span className="text-xs text-muted-foreground flex-shrink-0">12:30</span>
-                          </div>
-                          <p className="text-sm text-muted-foreground truncate">
-                            {display.subtitle}
-                          </p>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </TabsContent>
-        </Tabs>
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Konversationen durchsuchen..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9"
+          />
+        </div>
       </div>
 
-      <NewDirectMessageDialog
-        open={showNewDM}
-        onOpenChange={setShowNewDM}
-        currentUserId={currentUserId}
-        onConversationCreated={(conversation) => {
-          setShowNewDM(false);
-          fetchConversations();
-          onConversationSelect(conversation);
-        }}
-      />
+      <Tabs defaultValue="all" className="flex-1 flex flex-col overflow-hidden">
+        <TabsList className="w-full justify-start rounded-none border-b bg-transparent p-0">
+          <TabsTrigger value="all" className="rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary">
+            Alle
+          </TabsTrigger>
+          <TabsTrigger value="direct" className="rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary">
+            Direkt
+          </TabsTrigger>
+          <TabsTrigger value="groups" className="rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary">
+            Gruppen
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="all" className="flex-1 mt-0 overflow-hidden">
+          <ScrollArea className="h-full">
+            {isLoading && conversations.length === 0 ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin" />
+              </div>
+            ) : filteredConversations.length === 0 ? (
+              <div className="text-center py-8 px-4">
+                <p className="text-muted-foreground text-sm mb-4">
+                  Keine Konversationen gefunden
+                </p>
+                <div className="flex flex-col gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowNewDM(true)}
+                    className="mx-auto"
+                  >
+                    <MessageSquarePlus className="h-4 w-4 mr-2" />
+                    Neue Nachricht
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowCreateGroup(true)}
+                    className="mx-auto"
+                  >
+                    <Users className="h-4 w-4 mr-2" />
+                    Gruppe erstellen
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="divide-y">
+                {filteredConversations.map((conversation: any) => {
+                  const display = getConversationDisplay(conversation);
+                  return (
+                    <button
+                      key={conversation.id}
+                      onClick={() => handleConversationClick(conversation)}
+                      className={`w-full p-4 hover:bg-accent transition-colors text-left ${
+                        selectedConversationId === conversation.id ? "bg-accent" : ""
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <Avatar>
+                          {display.avatar && <AvatarImage src={display.avatar} />}
+                          <AvatarFallback>
+                            {conversation.is_group ? (
+                              <Users className="h-4 w-4" />
+                            ) : (
+                              display.name[0]?.toUpperCase() || "U"
+                            )}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="font-medium truncate">{display.name}</p>
+                            {conversation.is_group && (
+                              <Users className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                            )}
+                          </div>
+                          <p className="text-sm text-muted-foreground truncate">
+                            {display.subtitle}
+                          </p>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </ScrollArea>
+        </TabsContent>
+
+        <TabsContent value="direct" className="flex-1 mt-0 overflow-hidden">
+          <ScrollArea className="h-full">
+            {directConversations.length === 0 ? (
+              <div className="text-center py-8 px-4">
+                <p className="text-muted-foreground text-sm mb-4">
+                  Keine Direktnachrichten
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowNewDM(true)}
+                  className="mx-auto"
+                >
+                  <MessageSquarePlus className="h-4 w-4 mr-2" />
+                  Neue Nachricht
+                </Button>
+              </div>
+            ) : (
+              <div className="divide-y">
+                {directConversations.map((conversation: any) => {
+                  const display = getConversationDisplay(conversation);
+                  return (
+                    <button
+                      key={conversation.id}
+                      onClick={() => handleConversationClick(conversation)}
+                      className={`w-full p-4 hover:bg-accent transition-colors text-left ${
+                        selectedConversationId === conversation.id ? "bg-accent" : ""
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <Avatar>
+                          {display.avatar && <AvatarImage src={display.avatar} />}
+                          <AvatarFallback>
+                            {display.name[0]?.toUpperCase() || "U"}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium truncate">{display.name}</p>
+                          <p className="text-sm text-muted-foreground truncate">
+                            {display.subtitle}
+                          </p>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </ScrollArea>
+        </TabsContent>
+
+        <TabsContent value="groups" className="flex-1 mt-0 overflow-hidden">
+          <ScrollArea className="h-full">
+            {groupConversations.length === 0 ? (
+              <div className="text-center py-8 px-4">
+                <p className="text-muted-foreground text-sm mb-4">
+                  Keine Gruppen
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowCreateGroup(true)}
+                  className="mx-auto"
+                >
+                  <Users className="h-4 w-4 mr-2" />
+                  Gruppe erstellen
+                </Button>
+              </div>
+            ) : (
+              <div className="divide-y">
+                {groupConversations.map((conversation: any) => {
+                  const display = getConversationDisplay(conversation);
+                  return (
+                    <button
+                      key={conversation.id}
+                      onClick={() => handleConversationClick(conversation)}
+                      className={`w-full p-4 hover:bg-accent transition-colors text-left ${
+                        selectedConversationId === conversation.id ? "bg-accent" : ""
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <Avatar>
+                          <AvatarFallback>
+                            <Users className="h-4 w-4" />
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium truncate">{display.name}</p>
+                            <Users className="h-3 w-3 text-muted-foreground" />
+                          </div>
+                          <p className="text-sm text-muted-foreground truncate">
+                            {display.subtitle}
+                          </p>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </ScrollArea>
+        </TabsContent>
+      </Tabs>
 
       <CreateGroupDialog
         open={showCreateGroup}
         onOpenChange={setShowCreateGroup}
         currentUserId={currentUserId}
-        onGroupCreated={fetchConversations}
+        onGroupCreated={() => {
+          queryClient.invalidateQueries({ queryKey: ['conversations', currentUserId] });
+        }}
       />
-    </>
+
+      <NewDirectMessageDialog
+        open={showNewDM}
+        onOpenChange={setShowNewDM}
+        currentUserId={currentUserId}
+        onConversationCreated={(data) => {
+          onConversationSelect(data);
+          setShowNewDM(false);
+        }}
+      />
+    </Card>
   );
 };
