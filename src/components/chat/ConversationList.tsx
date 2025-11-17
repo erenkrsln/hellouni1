@@ -236,7 +236,7 @@ export const ConversationList = ({
 
           <TabsContent value="all" className="flex-1 mt-2 overflow-hidden">
             <div className="h-full overflow-y-auto">
-              {loading ? (
+          {isLoading && conversations.length === 0 ? (
                 <div className="flex justify-center py-8">
                   <Loader2 className="h-6 w-6 animate-spin" />
                 </div>
