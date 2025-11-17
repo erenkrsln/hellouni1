@@ -1,4 +1,4 @@
-import { Home, MessageCircle, Bell, Plus } from "lucide-react";
+import { Home, MessageCircle, Bell, Plus, Search } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -58,6 +58,7 @@ export const BottomNavigation = () => {
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-card border-t shadow-lg">
       <div className="flex items-center justify-around h-16 px-4">
+        {/* 1. Startseite */}
         <NavLink
           to="/home"
           className="flex items-center justify-center p-3 rounded-lg transition-colors hover-scale"
@@ -66,14 +67,16 @@ export const BottomNavigation = () => {
           <Home className="h-6 w-6" />
         </NavLink>
 
+        {/* 2. Suchleiste */}
         <NavLink
-          to="/messages"
+          to="/search"
           className="flex items-center justify-center p-3 rounded-lg transition-colors hover-scale"
           activeClassName="text-primary"
         >
-          <MessageCircle className="h-6 w-6" />
+          <Search className="h-6 w-6" />
         </NavLink>
 
+        {/* 3. Beitrag erstellen */}
         <Dialog open={isPostDialogOpen} onOpenChange={setIsPostDialogOpen}>
           <DialogTrigger asChild>
             <Button
@@ -91,6 +94,7 @@ export const BottomNavigation = () => {
           </DialogContent>
         </Dialog>
 
+        {/* 4. Benachrichtigungen */}
         <NavLink
           to="/notifications"
           className="flex items-center justify-center p-3 rounded-lg transition-colors hover-scale"
@@ -109,8 +113,14 @@ export const BottomNavigation = () => {
           </div>
         </NavLink>
 
-        {/* Placeholder for balance - empty space */}
-        <div className="w-6" />
+        {/* 5. Nachrichten */}
+        <NavLink
+          to="/messages"
+          className="flex items-center justify-center p-3 rounded-lg transition-colors hover-scale"
+          activeClassName="text-primary"
+        >
+          <MessageCircle className="h-6 w-6" />
+        </NavLink>
       </div>
       {/* Safe area spacer */}
       <div style={{ height: 'env(safe-area-inset-bottom)' }} />
