@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { Navigation } from "@/components/Navigation";
 import { Post } from "@/components/Post";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -158,7 +157,6 @@ const Profile = () => {
   if (notFound) {
     return (
       <div className="min-h-screen bg-background">
-        <Navigation />
         <main className="container max-w-2xl mx-auto px-4 py-6">
           <Card>
             <CardContent className="pt-6 text-center">
@@ -183,8 +181,6 @@ const Profile = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navigation />
-      
       <main className="container max-w-2xl mx-auto px-4 py-6 space-y-6">
         {/* Profile Header */}
         <Card>

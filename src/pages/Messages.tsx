@@ -1,5 +1,3 @@
-import { Navigation } from "@/components/Navigation";
-import { BottomNavigation } from "@/components/BottomNavigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -64,12 +62,7 @@ const Messages = () => {
   }
 
   return (
-    <div className="h-screen bg-background flex flex-col overflow-hidden pb-16 md:pb-0">
-      {/* Navigation - Hidden on mobile when chat is open */}
-      <div className={selectedConversation ? "hidden md:block" : ""}>
-        <Navigation />
-      </div>
-      
+    <div className="h-screen bg-background flex flex-col overflow-hidden">
       {/* Mobile View: Stack conversations and chat */}
       <div className="md:hidden flex-1 flex flex-col overflow-hidden">
         {!selectedConversation ? (
@@ -126,7 +119,6 @@ const Messages = () => {
           </div>
         </div>
       </main>
-      <BottomNavigation />
     </div>
   );
 };

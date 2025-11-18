@@ -1,7 +1,5 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Navigation } from "@/components/Navigation";
-import { BottomNavigation } from "@/components/BottomNavigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -136,9 +134,7 @@ export default function Settings() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navigation />
-      
-      <main className="container mx-auto px-4 py-8 pb-24 md:pb-8">
+      <main className="container mx-auto px-4 py-8">
         <div className="max-w-2xl mx-auto space-y-6">
           <div>
             <h1 className="text-3xl font-bold">Einstellungen</h1>
@@ -235,11 +231,11 @@ export default function Settings() {
                   className="bg-muted"
                 />
                 <p className="text-sm text-muted-foreground">
-                  Die E-Mail-Adresse kann nicht geändert werden
+                  E-Mail-Adresse kann derzeit nicht geändert werden
                 </p>
               </div>
 
-              <Button onClick={handleSaveProfile} disabled={loading} className="w-full">
+              <Button onClick={handleSaveProfile} disabled={loading}>
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -253,8 +249,6 @@ export default function Settings() {
           </Card>
         </div>
       </main>
-
-      <BottomNavigation />
     </div>
   );
 }

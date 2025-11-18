@@ -143,8 +143,10 @@ export const Navigation = () => {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="rounded-full">
                   <Avatar>
-                    <AvatarImage src={userProfile?.avatar_url || undefined} alt="Avatar" />
-                    <AvatarFallback delayMs={600}>
+                    {userProfile?.avatar_url && (
+                      <AvatarImage src={userProfile.avatar_url} alt="Avatar" />
+                    )}
+                    <AvatarFallback>
                       {userProfile?.full_name?.[0]?.toUpperCase() || 
                        userProfile?.username?.[0]?.toUpperCase() || 
                        user?.email?.[0]?.toUpperCase() || "U"}
@@ -178,8 +180,10 @@ export const Navigation = () => {
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon" className="rounded-full">
                   <Avatar>
-                    <AvatarImage src={userProfile?.avatar_url || undefined} alt="Avatar" />
-                    <AvatarFallback delayMs={600}>
+                    {userProfile?.avatar_url && (
+                      <AvatarImage src={userProfile.avatar_url} alt="Avatar" />
+                    )}
+                    <AvatarFallback>
                       {userProfile?.full_name?.[0]?.toUpperCase() || 
                        userProfile?.username?.[0]?.toUpperCase() || 
                        user?.email?.[0]?.toUpperCase() || "U"}
@@ -193,8 +197,10 @@ export const Navigation = () => {
                   <div className="p-6 border-b">
                     <div className="flex items-center gap-3 mb-4">
                       <Avatar className="h-12 w-12">
-                        <AvatarImage src={userProfile?.avatar_url || undefined} alt="Avatar" />
-                        <AvatarFallback delayMs={600}>
+                        {userProfile?.avatar_url && (
+                          <AvatarImage src={userProfile.avatar_url} alt="Avatar" />
+                        )}
+                        <AvatarFallback>
                           {userProfile?.full_name?.[0]?.toUpperCase() || 
                            userProfile?.username?.[0]?.toUpperCase() || 
                            user?.email?.[0]?.toUpperCase() || "U"}
