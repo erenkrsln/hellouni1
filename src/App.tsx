@@ -1,11 +1,10 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, BrowserRouter, Routes, Route } from "react-router-dom"; // Importiere BrowserRouter von react-router-dom
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider, useAuth } from "@/contexts/AuthContext"; // useAuth hinzufügen
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { AppLayout } from "@/components/AppLayout";
 import Index from "./pages/Index";
@@ -18,41 +17,37 @@ import Notifications from "./pages/Notifications";
 import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
-import { SplashScreen } from "@/components/SplashScreen";
+import SplashScreen from "@/components/SplashScreen"; // SplashScreen importieren
 
 const queryClient = new QueryClient();
 
 const App = () => {
-  const [loading, setLoading] = useState(true); // Ladezustand
+  const [loading, setLoading] = useState(true);
   const { user } = useAuth(); // Hole den Authentifizierungsstatus
-  const navigate = useNavigate();
-
-  const handleSplashFinish = () => {
-    setLoading(false); // Wenn der Splash Screen verschwindet, wird der Rest der App geladen
-  };
+  const navigate = useNavigate(); // useNavigate innerhalb des Router-Kontexts verwenden
 
   useEffect(() => {
-    // Überprüfe den Authentifizierungsstatus und leite den Nutzer weiter
     const checkAuth = async () => {
       await new Promise((resolve) => setTimeout(resolve, 1000)); // Warte für Authentifizierung
       if (user) {
-        navigate("/home"); // Wenn der Nutzer eingeloggt ist, leite ihn nach /home weiter
+        navigate("/home"); // Wenn der Nutzer eingeloggt ist, leite ihn direkt nach /home weiter
       } else {
-        navigate("/"); // Wenn nicht, zeige die Startseite
+        navigate("/auth"); // Wenn nicht, zeige die Authentifizierung
       }
     };
 
     checkAuth();
   }, [user, navigate]);
 
-  // Zeige den Splash Screen, solange die App lädt
   if (loading) {
-    return <SplashScreen onFinish={handleSplashFinish} />;
+    return <SplashScreen onFinish={() => setLoading(false)} />;
   }
 
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
+        {" "}
+        {/* BrowserRouter umschließt die gesamte App */}
         <ScrollToTop />
         <AuthProvider>
           <TooltipProvider>
