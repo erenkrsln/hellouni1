@@ -1,20 +1,19 @@
 // SplashScreen.tsx
-
 import { useEffect, useState } from "react";
 
-const SplashScreen = ({ onFinish }: { onFinish: () => void }) => {
+export const SplashScreen = ({ onFinish }: { onFinish: () => void }) => {
   const [isVisible, setIsVisible] = useState(true);
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      setIsVisible(false);
+      setIsVisible(false); // Verstecke den Splash Screen
       setTimeout(onFinish, 300); // Warte für fade-out Animation
     }, 500);
 
-    return () => clearTimeout(timer);
+    return () => clearTimeout(timer); // Bereinige den Timer
   }, [onFinish]);
 
-  if (!isVisible) return null;
+  if (!isVisible) return null; // Verstecke den Splash Screen nach dem Fade-out
 
   return (
     <div
@@ -26,5 +25,3 @@ const SplashScreen = ({ onFinish }: { onFinish: () => void }) => {
     </div>
   );
 };
-
-export default SplashScreen; // **Ändere dies zu default export**
