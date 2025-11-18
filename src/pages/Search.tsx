@@ -1,7 +1,5 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Navigation } from "@/components/Navigation";
-import { BottomNavigation } from "@/components/BottomNavigation";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -59,9 +57,7 @@ const Search = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-16 md:pb-0">
-      <Navigation />
-      
+    <div className="min-h-screen bg-background">
       <main className="container max-w-2xl mx-auto px-4 py-6 space-y-6">
         <div className="space-y-4">
           <h1 className="text-2xl font-bold">Suche</h1>
@@ -121,8 +117,6 @@ const Search = () => {
           )}
         </div>
       </main>
-      
-      <BottomNavigation />
     </div>
   );
 };

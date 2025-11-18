@@ -1,12 +1,10 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { Navigation } from "@/components/Navigation";
-import { BottomNavigation } from "@/components/BottomNavigation";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Heart, MessageCircle, UserPlus, Check } from "lucide-react";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { formatDistanceToNow } from "date-fns";
@@ -145,85 +143,84 @@ const Notifications = () => {
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
   return (
-    <div className="min-h-screen bg-background pb-16 md:pb-0">
-      <Navigation />
-      
+    <div className="min-h-screen bg-background">
       <main className="container max-w-2xl mx-auto px-4 py-6">
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold">Benachrichtigungen</h1>
             {unreadCount > 0 && (
               <p className="text-sm text-muted-foreground">
-                {unreadCount} ungelesen{unreadCount !== 1 ? "e" : ""}
+                {unreadCount} ungelesene Benachrichtigung{unreadCount !== 1 ? "en" : ""}
               </p>
             )}
           </div>
+          
           {unreadCount > 0 && (
-            <Button onClick={markAllAsRead} variant="outline" size="sm">
-              <Check className="h-4 w-4 mr-2" />
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={markAllAsRead}
+            >
               Alle als gelesen markieren
             </Button>
           )}
         </div>
 
-        {isLoading && notifications.length === 0 ? (
-          <div className="flex justify-center py-8">
-            <Loader2 className="h-8 w-8 animate-spin" />
-          </div>
-        ) : notifications.length === 0 ? (
-          <Card className="p-8 text-center text-muted-foreground">
-            Keine Benachrichtigungen vorhanden
+        {notifications.length === 0 ? (
+          <Card>
+            <CardContent className="pt-6 text-center text-muted-foreground">
+              Keine Benachrichtigungen
+            </CardContent>
           </Card>
         ) : (
           <div className="space-y-2">
             {notifications.map((notification) => (
               <Card
                 key={notification.id}
-                className={`p-4 cursor-pointer transition-colors hover:bg-accent ${
-                  !notification.is_read ? "bg-accent/50" : ""
+                className={`cursor-pointer transition-colors hover:bg-accent ${
+                  !notification.is_read ? "border-primary" : ""
                 }`}
                 onClick={() => handleNotificationClick(notification)}
               >
-                <div className="flex items-start gap-3">
-                  <Avatar className="h-10 w-10">
-                    {notification.actor?.avatar_url && (
-                      <AvatarImage src={notification.actor.avatar_url} alt="Avatar" />
-                    )}
-                    <AvatarFallback>
-                      {notification.actor?.full_name?.[0]?.toUpperCase() ||
-                        notification.actor?.username?.[0]?.toUpperCase() ||
-                        "U"}
-                    </AvatarFallback>
-                  </Avatar>
-                  
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start gap-2">
-                      <div className="flex-shrink-0 mt-1">
-                        {getNotificationIcon(notification.type)}
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-sm">
-                          {getNotificationText(notification)}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {formatDistanceToNow(new Date(notification.created_at), {
-                            addSuffix: true,
-                            locale: de,
-                          })}
-                        </p>
-                      </div>
-                      {!notification.is_read && (
-                        <div className="flex-shrink-0 w-2 h-2 bg-blue-500 rounded-full" />
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-3">
+                    <Avatar className="h-10 w-10">
+                      {notification.actor?.avatar_url && (
+                        <AvatarImage src={notification.actor.avatar_url} alt="Avatar" />
                       )}
+                      <AvatarFallback>
+                        {notification.actor?.full_name?.[0]?.toUpperCase() || 
+                         notification.actor?.username?.[0]?.toUpperCase() || "U"}
+                      </AvatarFallback>
+                    </Avatar>
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start gap-2">
+                        {getNotificationIcon(notification.type)}
+                        <div className="flex-1">
+                          <p className="text-sm">
+                            {getNotificationText(notification)}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {formatDistanceToNow(new Date(notification.created_at), {
+                              addSuffix: true,
+                              locale: de,
+                            })}
+                          </p>
+                        </div>
+                      </div>
                     </div>
+
+                    {!notification.is_read && (
+                      <div className="h-2 w-2 rounded-full bg-primary flex-shrink-0 mt-2" />
+                    )}
                   </div>
-                </div>
+                </CardContent>
               </Card>
             ))}
           </div>
         )}
       </main>
-      <BottomNavigation />
     </div>
   );
 };
