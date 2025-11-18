@@ -15,7 +15,7 @@ export default defineConfig(({ mode }) => ({
     mode === "development" && componentTagger(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["favicon.svg", "robots.txt"],
+      includeAssets: ["favicon.svg", "robots.txt", "logo.jpg"],
       manifest: {
         name: "HelloUni - Deine digitale Studierendenplattform",
         short_name: "HelloUni",
@@ -24,7 +24,21 @@ export default defineConfig(({ mode }) => ({
         background_color: "#ffffff",
         display: "standalone",
         orientation: "portrait",
-        start_url: "/"
+        start_url: "/",
+        icons: [
+          {
+            src: "/logo.jpg",
+            sizes: "192x192",
+            type: "image/jpeg",
+            purpose: "any maskable"
+          },
+          {
+            src: "/logo.jpg",
+            sizes: "512x512",
+            type: "image/jpeg",
+            purpose: "any maskable"
+          }
+        ]
       },
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
