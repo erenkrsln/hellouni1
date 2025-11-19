@@ -126,18 +126,28 @@ const Notifications = () => {
           </>
         );
       case "follow":
-        return <><span className="font-semibold">{actorName}</span> folgt dir jetzt</>;
+        return (
+          <>
+            <span className="font-semibold">{actorName}</span> folgt dir jetzt
+          </>
+        );
       default:
         return null;
     }
   };
 
-  if (authLoading || !user) {
+  // Show loading spinner while auth or notifications are loading
+  if (authLoading || isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
+      <div className="flex items-center justify-center min-h-[80vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
+  }
+
+  // Redirect if not authenticated
+  if (!user) {
+    return null;
   }
 
   const unreadCount = notifications.filter(n => !n.is_read).length;
@@ -168,8 +178,10 @@ const Notifications = () => {
 
         {notifications.length === 0 ? (
           <Card>
-            <CardContent className="pt-6 text-center text-muted-foreground">
-              Keine Benachrichtigungen
+            <CardContent className="py-12 text-center">
+              <p className="text-muted-foreground">
+                Keine Benachrichtigungen vorhanden
+              </p>
             </CardContent>
           </Card>
         ) : (
@@ -177,26 +189,29 @@ const Notifications = () => {
             {notifications.map((notification) => (
               <Card
                 key={notification.id}
-                className={`cursor-pointer transition-colors hover:bg-accent ${
-                  !notification.is_read ? "border-primary" : ""
+                className={`cursor-pointer transition-colors hover:bg-accent/50 ${
+                  !notification.is_read ? "bg-accent/20" : ""
                 }`}
                 onClick={() => handleNotificationClick(notification)}
               >
                 <CardContent className="p-4">
-                  <div className="flex items-start gap-3">
+                  <div className="flex gap-3">
                     <Avatar className="h-10 w-10">
-                      {notification.actor?.avatar_url && (
-                        <AvatarImage src={notification.actor.avatar_url} alt="Avatar" />
+                      {notification.actor?.avatar_url ? (
+                        <AvatarImage 
+                          src={notification.actor.avatar_url} 
+                          alt={notification.actor.username || "User"}
+                          loading="eager"
+                        />
+                      ) : (
+                        <AvatarFallback>
+                          {notification.actor?.username?.[0]?.toUpperCase() || "U"}
+                        </AvatarFallback>
                       )}
-                      <AvatarFallback>
-                        {notification.actor?.full_name?.[0]?.toUpperCase() || 
-                         notification.actor?.username?.[0]?.toUpperCase() || "U"}
-                      </AvatarFallback>
                     </Avatar>
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start gap-2">
-                        {getNotificationIcon(notification.type)}
                         <div className="flex-1">
                           <p className="text-sm">
                             {getNotificationText(notification)}
@@ -208,12 +223,14 @@ const Notifications = () => {
                             })}
                           </p>
                         </div>
+                        <div className="flex items-center gap-2">
+                          {getNotificationIcon(notification.type)}
+                          {notification.is_read && (
+                            <Check className="h-4 w-4 text-muted-foreground" />
+                          )}
+                        </div>
                       </div>
                     </div>
-
-                    {!notification.is_read && (
-                      <div className="h-2 w-2 rounded-full bg-primary flex-shrink-0 mt-2" />
-                    )}
                   </div>
                 </CardContent>
               </Card>
