@@ -6,14 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import HelloUniLogo from "@/assets/HelloUni_Logo.svg";
 
 export const Hero = () => {
-  const { user, loading } = useAuth();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    if (!loading && user) {
-      navigate("/home");
-    }
-  }, [user, loading, navigate]);
 
   return (
     <div className="min-h-screen gradient-hero">

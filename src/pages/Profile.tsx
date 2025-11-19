@@ -29,7 +29,7 @@ const Profile = () => {
 
   const { data: profile, isLoading: profileLoading } = useProfileByUsername(username);
   const { data: posts = [], isLoading: postsLoading } = useUserPosts(profile?.id);
-  const { data: followStats } = useFollowStats(profile?.id, user?.id);
+  const { data: followStats, isLoading: followStatsLoading } = useFollowStats(profile?.id, user?.id);
   
   const loading = profileLoading;
   const notFound = !profileLoading && !profile;
@@ -229,11 +229,19 @@ const Profile = () => {
                 {/* Follow Stats */}
                 <div className="flex items-center gap-6 text-sm">
                   <div className="flex flex-col items-center">
-                    <span className="font-semibold">{followStats?.followers || 0}</span>
+                    {followStatsLoading ? (
+                      <div className="h-6 w-12 bg-muted animate-pulse rounded" />
+                    ) : (
+                      <span className="font-semibold">{followStats?.followers || 0}</span>
+                    )}
                     <span className="text-muted-foreground">Follower</span>
                   </div>
                   <div className="flex flex-col items-center">
-                    <span className="font-semibold">{followStats?.following || 0}</span>
+                    {followStatsLoading ? (
+                      <div className="h-6 w-12 bg-muted animate-pulse rounded" />
+                    ) : (
+                      <span className="font-semibold">{followStats?.following || 0}</span>
+                    )}
                     <span className="text-muted-foreground">Following</span>
                   </div>
                 </div>
