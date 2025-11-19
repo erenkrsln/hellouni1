@@ -5,22 +5,15 @@ export const SplashScreen = ({ onFinish }: { onFinish: () => void }) => {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      setIsVisible(false);
-      setTimeout(onFinish, 300); // Wait for fade out animation
-    }, 500);
+      onFinish();
+    }, 1000);
 
     return () => clearTimeout(timer);
   }, [onFinish]);
 
-  if (!isVisible) return null;
-
   return (
-    <div
-      className={`fixed inset-0 z-[9999] flex items-center justify-center bg-white transition-opacity duration-300 ${
-        isVisible ? 'opacity-100' : 'opacity-0'
-      }`}
-    >
-      <div className="flex flex-col items-center gap-4 animate-in fade-in zoom-in duration-500">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-background">
+      <div className="flex flex-col items-center gap-4">
         <img 
           src="/logo.jpg" 
           alt="HelloUni" 
