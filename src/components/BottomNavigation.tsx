@@ -7,6 +7,7 @@ import { PostForm } from "@/components/PostForm";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { prefetchRoute } from "@/utils/routePrefetch";
 
 export const BottomNavigation = () => {
   const [unreadCount, setUnreadCount] = useState(0);
@@ -63,6 +64,7 @@ export const BottomNavigation = () => {
           to="/home"
           className="flex items-center justify-center p-3 rounded-lg transition-colors hover-scale"
           activeClassName="text-primary"
+          onMouseEnter={() => prefetchRoute('/home')}
         >
           <Home className="h-6 w-6" />
         </NavLink>
@@ -72,6 +74,7 @@ export const BottomNavigation = () => {
           to="/search"
           className="flex items-center justify-center p-3 rounded-lg transition-colors hover-scale"
           activeClassName="text-primary"
+          onMouseEnter={() => prefetchRoute('/search')}
         >
           <Search className="h-6 w-6" />
         </NavLink>
@@ -99,6 +102,7 @@ export const BottomNavigation = () => {
           to="/notifications"
           className="flex items-center justify-center p-3 rounded-lg transition-colors hover-scale"
           activeClassName="text-primary"
+          onMouseEnter={() => prefetchRoute('/notifications')}
         >
           <div className="relative">
             <Bell className="h-6 w-6" />
@@ -118,6 +122,7 @@ export const BottomNavigation = () => {
           to="/messages"
           className="flex items-center justify-center p-3 rounded-lg transition-colors hover-scale"
           activeClassName="text-primary"
+          onMouseEnter={() => prefetchRoute('/messages')}
         >
           <MessageCircle className="h-6 w-6" />
         </NavLink>

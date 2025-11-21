@@ -13,6 +13,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import HelloUniLogo from "@/assets/HelloUni_Logo.svg";
+import { prefetchRoute } from "@/utils/routePrefetch";
 
 export const Navigation = () => {
   const [date, setDate] = useState<Date | undefined>(new Date());
@@ -106,17 +107,29 @@ export const Navigation = () => {
 
           {/* Navigation Items - Desktop only */}
           <div className="hidden md:flex items-center gap-2 sm:gap-4">
-            <NavLink to="/home" className="flex flex-col items-center gap-1 p-2 rounded-lg transition-colors hover:bg-accent">
+            <NavLink 
+              to="/home" 
+              className="flex flex-col items-center gap-1 p-2 rounded-lg transition-colors hover:bg-accent"
+              onMouseEnter={() => prefetchRoute('/home')}
+            >
               <Home className="h-5 w-5 sm:h-6 sm:w-6" />
               <span className="text-xs hidden sm:inline">Startseite</span>
             </NavLink>
 
-            <NavLink to="/messages" className="flex flex-col items-center gap-1 p-2 rounded-lg transition-colors hover:bg-accent">
+            <NavLink 
+              to="/messages" 
+              className="flex flex-col items-center gap-1 p-2 rounded-lg transition-colors hover:bg-accent"
+              onMouseEnter={() => prefetchRoute('/messages')}
+            >
               <MessageCircle className="h-5 w-5 sm:h-6 sm:w-6" />
               <span className="text-xs hidden sm:inline">Nachrichten</span>
             </NavLink>
 
-            <NavLink to="/notifications" className="flex flex-col items-center gap-1 p-2 rounded-lg transition-colors hover:bg-accent">
+            <NavLink 
+              to="/notifications" 
+              className="flex flex-col items-center gap-1 p-2 rounded-lg transition-colors hover:bg-accent"
+              onMouseEnter={() => prefetchRoute('/notifications')}
+            >
               <div className="relative">
                 <Bell className="h-5 w-5 sm:h-6 sm:w-6" />
                 {unreadCount > 0 && (
@@ -162,11 +175,17 @@ export const Navigation = () => {
               <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuLabel>Mein Account</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => navigate(`/profile/${userProfile?.username || user?.email?.split('@')[0]}`)}>
+                <DropdownMenuItem 
+                  onClick={() => navigate(`/profile/${userProfile?.username || user?.email?.split('@')[0]}`)}
+                  onMouseEnter={() => prefetchRoute(`/profile/${userProfile?.username || user?.email?.split('@')[0]}`)}
+                >
                   <User className="mr-2 h-4 w-4" />
                   <span>Profil</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate('/settings')}>
+                <DropdownMenuItem 
+                  onClick={() => navigate('/settings')}
+                  onMouseEnter={() => prefetchRoute('/settings')}
+                >
                   <Settings className="mr-2 h-4 w-4" />
                   <span>Einstellungen</span>
                 </DropdownMenuItem>
